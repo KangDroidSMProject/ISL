@@ -4226,7 +4226,7 @@ static __isl_give isl_schedule_node *compute_component_schedule(
  * We first check if the graph is connected (through validity and conditional
  * validity dependences) and, if not, compute a schedule
  * for each component separately.
- * If the schedule_serialize_sccs option is set, then we check for strongly
+ * If schedule_fuse is set to minimal fusion, then we check for strongly
  * connected components instead and compute a separate schedule for
  * each such strongly connected component.
  */
@@ -4239,7 +4239,7 @@ static __isl_give isl_schedule_node *compute_schedule(isl_schedule_node *node,
 		return NULL;
 
 	ctx = isl_schedule_node_get_ctx(node);
-	if (isl_options_get_schedule_serialize_sccs(ctx)) {
+	if (ctx->opt->schedule_fuse == ISL_SCHEDULE_FUSE_MIN) {
 		if (detect_sccs(ctx, graph) < 0)
 			return isl_schedule_node_free(node);
 	} else {
