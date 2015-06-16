@@ -1766,16 +1766,16 @@ struct isl_tc_follows_data {
  * *check_closed is set if the subset relation holds while
  * R_1 \circ R_2 is not empty.
  */
-static isl_bool basic_map_follows(int i, int j, void *user)
+static int basic_map_follows(int i, int j, void *user)
 {
 	struct isl_tc_follows_data *data = user;
 	struct isl_map *map12 = NULL;
 	struct isl_map *map21 = NULL;
-	isl_bool subset;
+	int subset;
 
 	if (!isl_space_tuple_is_equal(data->list[i]->dim, isl_dim_in,
 				    data->list[j]->dim, isl_dim_out))
-		return isl_bool_false;
+		return 0;
 
 	map21 = isl_map_from_basic_map(
 			isl_basic_map_apply_range(
@@ -1786,7 +1786,7 @@ static isl_bool basic_map_follows(int i, int j, void *user)
 		goto error;
 	if (subset) {
 		isl_map_free(map21);
-		return isl_bool_false;
+		return 0;
 	}
 
 	if (!isl_space_tuple_is_equal(data->list[i]->dim, isl_dim_in,
@@ -1794,7 +1794,7 @@ static isl_bool basic_map_follows(int i, int j, void *user)
 	    !isl_space_tuple_is_equal(data->list[j]->dim, isl_dim_in,
 				    data->list[j]->dim, isl_dim_out)) {
 		isl_map_free(map21);
-		return isl_bool_true;
+		return 1;
 	}
 
 	map12 = isl_map_from_basic_map(
@@ -1810,10 +1810,10 @@ static isl_bool basic_map_follows(int i, int j, void *user)
 	if (subset)
 		data->check_closed = 1;
 
-	return subset < 0 ? isl_bool_error : !subset;
+	return subset < 0 ? -1 : !subset;
 error:
 	isl_map_free(map21);
-	return isl_bool_error;
+	return -1;
 }
 
 /* Given a union of basic maps R = \cup_i R_i \subseteq D \times D
@@ -2610,7 +2610,7 @@ error:
 	return NULL;
 }
 
-static isl_stat inc_count(__isl_take isl_map *map, void *user)
+static int inc_count(__isl_take isl_map *map, void *user)
 {
 	int *n = user;
 
@@ -2618,10 +2618,10 @@ static isl_stat inc_count(__isl_take isl_map *map, void *user)
 
 	isl_map_free(map);
 
-	return isl_stat_ok;
+	return 0;
 }
 
-static isl_stat collect_basic_map(__isl_take isl_map *map, void *user)
+static int collect_basic_map(__isl_take isl_map *map, void *user)
 {
 	int i;
 	isl_basic_map ***next = user;
@@ -2634,10 +2634,10 @@ static isl_stat collect_basic_map(__isl_take isl_map *map, void *user)
 	}
 
 	isl_map_free(map);
-	return isl_stat_ok;
+	return 0;
 error:
 	isl_map_free(map);
-	return isl_stat_error;
+	return -1;
 }
 
 /* Perform Floyd-Warshall on the given list of basic relations.
@@ -2905,14 +2905,14 @@ struct isl_union_power {
 	int *exact;
 };
 
-static isl_stat power(__isl_take isl_map *map, void *user)
+static int power(__isl_take isl_map *map, void *user)
 {
 	struct isl_union_power *up = user;
 
 	map = isl_map_power(map, up->exact);
 	up->pow = isl_union_map_from_map(map);
 
-	return isl_stat_error;
+	return -1;
 }
 
 /* Construct a map [x] -> [x+1], with parameters prescribed by "dim".

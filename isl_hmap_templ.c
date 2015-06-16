@@ -56,14 +56,14 @@ __isl_give HMAP *FN(HMAP,alloc)(isl_ctx *ctx, int min_size)
 	return hmap;
 }
 
-static isl_stat free_pair(void **entry, void *user)
+static int free_pair(void **entry, void *user)
 {
 	S(pair) *pair = *entry;
 	FN(KEY,free)(pair->key);
 	FN(VAL,free)(pair->val);
 	free(pair);
 	*entry = NULL;
-	return isl_stat_ok;
+	return 0;
 }
 
 __isl_null HMAP *FN(HMAP,free)(__isl_take HMAP *hmap)
@@ -87,17 +87,16 @@ isl_ctx *FN(HMAP,get_ctx)(__isl_keep HMAP *hmap)
 /* Add a mapping from "key" to "val" to the associative array
  * pointed to by user.
  */
-static isl_stat add_key_val(__isl_take KEY *key, __isl_take VAL *val,
-	void *user)
+static int add_key_val(__isl_take KEY *key, __isl_take VAL *val, void *user)
 {
 	HMAP **hmap = (HMAP **) user;
 
 	*hmap = FN(HMAP,set)(*hmap, key, val);
 
 	if (!*hmap)
-		return isl_stat_error;
+		return -1;
 
-	return isl_stat_ok;
+	return 0;
 }
 
 __isl_give HMAP *FN(HMAP,dup)(__isl_keep HMAP *hmap)
@@ -142,12 +141,12 @@ static int has_key(const void *entry, const void *c_key)
 	return KEY_EQUAL(pair->key, key);
 }
 
-isl_bool FN(HMAP,has)(__isl_keep HMAP *hmap, __isl_keep KEY *key)
+int FN(HMAP,has)(__isl_keep HMAP *hmap, __isl_keep KEY *key)
 {
 	uint32_t hash;
 
 	if (!hmap)
-		return isl_bool_error;
+		return -1;
 
 	hash = FN(KEY,get_hash)(key);
 	return !!isl_hash_table_find(hmap->ctx, &hmap->table, hash,
@@ -295,13 +294,13 @@ error:
  * user is the user-specified final argument to fn.
  */
 S(foreach_data) {
-	isl_stat (*fn)(__isl_take KEY *key, __isl_take VAL *val, void *user);
+	int (*fn)(__isl_take KEY *key, __isl_take VAL *val, void *user);
 	void *user;
 };
 
 /* Call data->fn on a copy of the key and value in *entry.
  */
-static isl_stat call_on_copy(void **entry, void *user)
+static int call_on_copy(void **entry, void *user)
 {
 	S(pair) *pair = *entry;
 	S(foreach_data) *data = (S(foreach_data) *) user;
@@ -312,14 +311,14 @@ static isl_stat call_on_copy(void **entry, void *user)
 
 /* Call "fn" on each pair of key and value in "hmap".
  */
-isl_stat FN(HMAP,foreach)(__isl_keep HMAP *hmap,
-	isl_stat (*fn)(__isl_take KEY *key, __isl_take VAL *val, void *user),
+int FN(HMAP,foreach)(__isl_keep HMAP *hmap,
+	int (*fn)(__isl_take KEY *key, __isl_take VAL *val, void *user),
 	void *user)
 {
 	S(foreach_data) data = { fn, user };
 
 	if (!hmap)
-		return isl_stat_error;
+		return -1;
 
 	return isl_hash_table_foreach(hmap->ctx, &hmap->table,
 				      &call_on_copy, &data);
@@ -337,7 +336,7 @@ S(print_data) {
 
 /* Print the given key-value pair to data->p.
  */
-static isl_stat print_pair(__isl_take KEY *key, __isl_take VAL *val, void *user)
+static int print_pair(__isl_take KEY *key, __isl_take VAL *val, void *user)
 {
 	S(print_data) *data = user;
 
@@ -350,7 +349,7 @@ static isl_stat print_pair(__isl_take KEY *key, __isl_take VAL *val, void *user)
 
 	FN(KEY,free)(key);
 	FN(VAL,free)(val);
-	return isl_stat_ok;
+	return 0;
 }
 
 /* Print the associative array to "p".

@@ -195,10 +195,9 @@ const char *FN(PW,get_dim_name)(__isl_keep PW *pw, enum isl_dim_type type,
 	return pw ? isl_space_get_dim_name(pw->dim, type, pos) : NULL;
 }
 
-isl_bool FN(PW,has_dim_id)(__isl_keep PW *pw, enum isl_dim_type type,
-	unsigned pos)
+int FN(PW,has_dim_id)(__isl_keep PW *pw, enum isl_dim_type type, unsigned pos)
 {
-	return pw ? isl_space_has_dim_id(pw->dim, type, pos) : isl_bool_error;
+	return pw ? isl_space_has_dim_id(pw->dim, type, pos) : -1;
 }
 
 __isl_give isl_id *FN(PW,get_dim_id)(__isl_keep PW *pw, enum isl_dim_type type,
@@ -207,9 +206,9 @@ __isl_give isl_id *FN(PW,get_dim_id)(__isl_keep PW *pw, enum isl_dim_type type,
 	return pw ? isl_space_get_dim_id(pw->dim, type, pos) : NULL;
 }
 
-isl_bool FN(PW,has_tuple_name)(__isl_keep PW *pw, enum isl_dim_type type)
+int FN(PW,has_tuple_name)(__isl_keep PW *pw, enum isl_dim_type type)
 {
-	return pw ? isl_space_has_tuple_name(pw->dim, type) : isl_bool_error;
+	return pw ? isl_space_has_tuple_name(pw->dim, type) : -1;
 }
 
 const char *FN(PW,get_tuple_name)(__isl_keep PW *pw, enum isl_dim_type type)
@@ -217,9 +216,9 @@ const char *FN(PW,get_tuple_name)(__isl_keep PW *pw, enum isl_dim_type type)
 	return pw ? isl_space_get_tuple_name(pw->dim, type) : NULL;
 }
 
-isl_bool FN(PW,has_tuple_id)(__isl_keep PW *pw, enum isl_dim_type type)
+int FN(PW,has_tuple_id)(__isl_keep PW *pw, enum isl_dim_type type)
 {
-	return pw ? isl_space_has_tuple_id(pw->dim, type) : isl_bool_error;
+	return pw ? isl_space_has_tuple_id(pw->dim, type) : -1;
 }
 
 __isl_give isl_id *FN(PW,get_tuple_id)(__isl_keep PW *pw, enum isl_dim_type type)
@@ -227,10 +226,10 @@ __isl_give isl_id *FN(PW,get_tuple_id)(__isl_keep PW *pw, enum isl_dim_type type
 	return pw ? isl_space_get_tuple_id(pw->dim, type) : NULL;
 }
 
-isl_bool FN(PW,IS_ZERO)(__isl_keep PW *pw)
+int FN(PW,IS_ZERO)(__isl_keep PW *pw)
 {
 	if (!pw)
-		return isl_bool_error;
+		return -1;
 
 	return pw->n == 0;
 }
@@ -1087,21 +1086,21 @@ isl_ctx *FN(PW,get_ctx)(__isl_keep PW *pw)
 }
 
 #ifndef NO_INVOLVES_DIMS
-isl_bool FN(PW,involves_dims)(__isl_keep PW *pw, enum isl_dim_type type,
+int FN(PW,involves_dims)(__isl_keep PW *pw, enum isl_dim_type type,
 	unsigned first, unsigned n)
 {
 	int i;
 	enum isl_dim_type set_type;
 
 	if (!pw)
-		return isl_bool_error;
+		return -1;
 	if (pw->n == 0 || n == 0)
-		return isl_bool_false;
+		return 0;
 
 	set_type = type == isl_dim_in ? isl_dim_set : type;
 
 	for (i = 0; i < pw->n; ++i) {
-		isl_bool involves = FN(EL,involves_dims)(pw->p[i].FIELD,
+		int involves = FN(EL,involves_dims)(pw->p[i].FIELD,
 							type, first, n);
 		if (involves < 0 || involves)
 			return involves;
@@ -1110,7 +1109,7 @@ isl_bool FN(PW,involves_dims)(__isl_keep PW *pw, enum isl_dim_type type,
 		if (involves < 0 || involves)
 			return involves;
 	}
-	return isl_bool_false;
+	return 0;
 }
 #endif
 
@@ -1604,21 +1603,21 @@ int FN(PW,n_piece)(__isl_keep PW *pw)
 	return pw ? pw->n : 0;
 }
 
-isl_stat FN(PW,foreach_piece)(__isl_keep PW *pw,
-	isl_stat (*fn)(__isl_take isl_set *set, __isl_take EL *el, void *user),
+int FN(PW,foreach_piece)(__isl_keep PW *pw,
+	int (*fn)(__isl_take isl_set *set, __isl_take EL *el, void *user),
 	void *user)
 {
 	int i;
 
 	if (!pw)
-		return isl_stat_error;
+		return -1;
 
 	for (i = 0; i < pw->n; ++i)
 		if (fn(isl_set_copy(pw->p[i].set),
 				FN(EL,copy)(pw->p[i].FIELD), user) < 0)
-			return isl_stat_error;
+			return -1;
 
-	return isl_stat_ok;
+	return 0;
 }
 
 #ifndef NO_LIFT
@@ -1636,10 +1635,9 @@ static int any_divs(__isl_keep isl_set *set)
 	return 0;
 }
 
-static isl_stat foreach_lifted_subset(__isl_take isl_set *set,
-	__isl_take EL *el,
-	isl_stat (*fn)(__isl_take isl_set *set, __isl_take EL *el,
-		void *user), void *user)
+static int foreach_lifted_subset(__isl_take isl_set *set, __isl_take EL *el,
+	int (*fn)(__isl_take isl_set *set, __isl_take EL *el,
+		    void *user), void *user)
 {
 	int i;
 
@@ -1663,21 +1661,21 @@ static isl_stat foreach_lifted_subset(__isl_take isl_set *set,
 	isl_set_free(set);
 	FN(EL,free)(el);
 
-	return isl_stat_ok;
+	return 0;
 error:
 	isl_set_free(set);
 	FN(EL,free)(el);
-	return isl_stat_error;
+	return -1;
 }
 
-isl_stat FN(PW,foreach_lifted_piece)(__isl_keep PW *pw,
-	isl_stat (*fn)(__isl_take isl_set *set, __isl_take EL *el,
+int FN(PW,foreach_lifted_piece)(__isl_keep PW *pw,
+	int (*fn)(__isl_take isl_set *set, __isl_take EL *el,
 		    void *user), void *user)
 {
 	int i;
 
 	if (!pw)
-		return isl_stat_error;
+		return -1;
 
 	for (i = 0; i < pw->n; ++i) {
 		isl_set *set;
@@ -1687,14 +1685,14 @@ isl_stat FN(PW,foreach_lifted_piece)(__isl_keep PW *pw,
 		el = FN(EL,copy)(pw->p[i].FIELD);
 		if (!any_divs(set)) {
 			if (fn(set, el, user) < 0)
-				return isl_stat_error;
+				return -1;
 			continue;
 		}
 		if (foreach_lifted_subset(set, el, fn, user) < 0)
-			return isl_stat_error;
+			return -1;
 	}
 
-	return isl_stat_ok;
+	return 0;
 }
 #endif
 
@@ -1936,18 +1934,18 @@ __isl_give PW *FN(PW,normalize)(__isl_take PW *pw)
  * That is, do they have obviously identical cells and obviously identical
  * elements on each cell?
  */
-isl_bool FN(PW,plain_is_equal)(__isl_keep PW *pw1, __isl_keep PW *pw2)
+int FN(PW,plain_is_equal)(__isl_keep PW *pw1, __isl_keep PW *pw2)
 {
 	int i;
-	isl_bool equal;
+	int equal;
 
 	if (!pw1 || !pw2)
-		return isl_bool_error;
+		return -1;
 
 	if (pw1 == pw2)
-		return isl_bool_true;
+		return 1;
 	if (!isl_space_is_equal(pw1->dim, pw2->dim))
-		return isl_bool_false;
+		return 0;
 
 	pw1 = FN(PW,copy)(pw1);
 	pw2 = FN(PW,copy)(pw2);
@@ -1974,7 +1972,7 @@ isl_bool FN(PW,plain_is_equal)(__isl_keep PW *pw1, __isl_keep PW *pw2)
 error:
 	FN(PW,free)(pw1);
 	FN(PW,free)(pw2);
-	return isl_bool_error;
+	return -1;
 }
 
 #ifndef NO_PULLBACK

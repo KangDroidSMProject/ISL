@@ -273,23 +273,23 @@ error:
 	return NULL;
 }
 
-isl_stat FN(LIST(EL),foreach)(__isl_keep LIST(EL) *list,
-	isl_stat (*fn)(__isl_take EL *el, void *user), void *user)
+int FN(LIST(EL),foreach)(__isl_keep LIST(EL) *list,
+	int (*fn)(__isl_take EL *el, void *user), void *user)
 {
 	int i;
 
 	if (!list)
-		return isl_stat_error;
+		return -1;
 
 	for (i = 0; i < list->n; ++i) {
 		EL *el = FN(EL,copy(list->p[i]));
 		if (!el)
-			return isl_stat_error;
+			return -1;
 		if (fn(el, user) < 0)
-			return isl_stat_error;
+			return -1;
 	}
 
-	return isl_stat_ok;
+	return 0;
 }
 
 /* Internal data structure for isl_*_list_sort.
@@ -344,7 +344,7 @@ __isl_give LIST(EL) *FN(LIST(EL),sort)(__isl_take LIST(EL) *list,
  */
 S(LIST(EL),foreach_scc_data) {
 	LIST(EL) *list;
-	isl_bool (*follows)(__isl_keep EL *a, __isl_keep EL *b, void *user);
+	int (*follows)(__isl_keep EL *a, __isl_keep EL *b, void *user);
 	void *follows_user;
 };
 
@@ -352,7 +352,7 @@ S(LIST(EL),foreach_scc_data) {
  *
  * Use the user provided callback to find out.
  */
-static isl_bool FN(LIST(EL),follows)(int i, int j, void *user)
+static int FN(LIST(EL),follows)(int i, int j, void *user)
 {
 	S(LIST(EL),foreach_scc_data) *data = user;
 
@@ -363,8 +363,8 @@ static isl_bool FN(LIST(EL),follows)(int i, int j, void *user)
 /* Call "fn" on the sublist of "list" that consists of the elements
  * with indices specified by the "n" elements of "pos".
  */
-static isl_stat FN(LIST(EL),call_on_scc)(__isl_keep LIST(EL) *list, int *pos,
-	int n, isl_stat (*fn)(__isl_take LIST(EL) *scc, void *user), void *user)
+static int FN(LIST(EL),call_on_scc)(__isl_keep LIST(EL) *list, int *pos, int n,
+	int (*fn)(__isl_take LIST(EL) *scc, void *user), void *user)
 {
 	int i;
 	isl_ctx *ctx;
@@ -394,10 +394,10 @@ static isl_stat FN(LIST(EL),call_on_scc)(__isl_keep LIST(EL) *list, int *pos,
  * We simply call isl_tarjan_graph_init, extract the SCCs from the result and
  * call fn on each of them.
  */
-isl_stat FN(LIST(EL),foreach_scc)(__isl_keep LIST(EL) *list,
-	isl_bool (*follows)(__isl_keep EL *a, __isl_keep EL *b, void *user),
+int FN(LIST(EL),foreach_scc)(__isl_keep LIST(EL) *list,
+	int (*follows)(__isl_keep EL *a, __isl_keep EL *b, void *user),
 	void *follows_user,
-	isl_stat (*fn)(__isl_take LIST(EL) *scc, void *user), void *fn_user)
+	int (*fn)(__isl_take LIST(EL) *scc, void *user), void *fn_user)
 {
 	S(LIST(EL),foreach_scc_data) data = { list, follows, follows_user };
 	int i, n;
@@ -405,9 +405,9 @@ isl_stat FN(LIST(EL),foreach_scc)(__isl_keep LIST(EL) *list,
 	struct isl_tarjan_graph *g;
 
 	if (!list)
-		return isl_stat_error;
+		return -1;
 	if (list->n == 0)
-		return isl_stat_ok;
+		return 0;
 	if (list->n == 1)
 		return fn(FN(LIST(EL),copy)(list), fn_user);
 
@@ -415,7 +415,7 @@ isl_stat FN(LIST(EL),foreach_scc)(__isl_keep LIST(EL) *list,
 	n = list->n;
 	g = isl_tarjan_graph_init(ctx, n, &FN(LIST(EL),follows), &data);
 	if (!g)
-		return isl_stat_error;
+		return -1;
 
 	i = 0;
 	do {
@@ -440,7 +440,7 @@ isl_stat FN(LIST(EL),foreach_scc)(__isl_keep LIST(EL) *list,
 
 	isl_tarjan_graph_free(g);
 
-	return n > 0 ? isl_stat_error : isl_stat_ok;
+	return n > 0 ? -1 : 0;
 }
 
 __isl_give LIST(EL) *FN(FN(LIST(EL),from),BASE)(__isl_take EL *el)

@@ -1260,87 +1260,87 @@ error:
 	return -1;
 }
 
-isl_stat isl_vertices_foreach_cell(__isl_keep isl_vertices *vertices,
-	isl_stat (*fn)(__isl_take isl_cell *cell, void *user), void *user)
+int isl_vertices_foreach_cell(__isl_keep isl_vertices *vertices,
+	int (*fn)(__isl_take isl_cell *cell, void *user), void *user)
 {
 	int i;
 	isl_cell *cell;
 
 	if (!vertices)
-		return isl_stat_error;
+		return -1;
 
 	if (vertices->n_chambers == 0)
-		return isl_stat_ok;
+		return 0;
 
 	for (i = 0; i < vertices->n_chambers; ++i) {
-		isl_stat r;
+		int r;
 		isl_basic_set *dom = isl_basic_set_copy(vertices->c[i].dom);
 
 		cell = isl_cell_alloc(isl_vertices_copy(vertices), dom, i);
 		if (!cell)
-			return isl_stat_error;
+			return -1;
 
 		r = fn(cell, user);
 		if (r < 0)
-			return isl_stat_error;
+			return -1;
 	}
 
-	return isl_stat_ok;
+	return 0;
 }
 
-isl_stat isl_vertices_foreach_vertex(__isl_keep isl_vertices *vertices,
-	isl_stat (*fn)(__isl_take isl_vertex *vertex, void *user), void *user)
+int isl_vertices_foreach_vertex(__isl_keep isl_vertices *vertices,
+	int (*fn)(__isl_take isl_vertex *vertex, void *user), void *user)
 {
 	int i;
 	isl_vertex *vertex;
 
 	if (!vertices)
-		return isl_stat_error;
+		return -1;
 
 	if (vertices->n_vertices == 0)
-		return isl_stat_ok;
+		return 0;
 
 	for (i = 0; i < vertices->n_vertices; ++i) {
-		isl_stat r;
+		int r;
 
 		vertex = isl_vertex_alloc(isl_vertices_copy(vertices), i);
 		if (!vertex)
-			return isl_stat_error;
+			return -1;
 
 		r = fn(vertex, user);
 		if (r < 0)
-			return isl_stat_error;
+			return -1;
 	}
 
-	return isl_stat_ok;
+	return 0;
 }
 
-isl_stat isl_cell_foreach_vertex(__isl_keep isl_cell *cell,
-	isl_stat (*fn)(__isl_take isl_vertex *vertex, void *user), void *user)
+int isl_cell_foreach_vertex(__isl_keep isl_cell *cell,
+	int (*fn)(__isl_take isl_vertex *vertex, void *user), void *user)
 {
 	int i;
 	isl_vertex *vertex;
 
 	if (!cell)
-		return isl_stat_error;
+		return -1;
 
 	if (cell->n_vertices == 0)
-		return isl_stat_ok;
+		return 0;
 
 	for (i = 0; i < cell->n_vertices; ++i) {
-		isl_stat r;
+		int r;
 
 		vertex = isl_vertex_alloc(isl_vertices_copy(cell->vertices),
 					  cell->ids[i]);
 		if (!vertex)
-			return isl_stat_error;
+			return -1;
 
 		r = fn(vertex, user);
 		if (r < 0)
-			return isl_stat_error;
+			return -1;
 	}
 
-	return isl_stat_ok;
+	return 0;
 }
 
 isl_ctx *isl_vertices_get_ctx(__isl_keep isl_vertices *vertices)

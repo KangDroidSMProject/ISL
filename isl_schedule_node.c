@@ -247,27 +247,27 @@ __isl_null isl_schedule_node *isl_schedule_node_free(
 /* Do "node1" and "node2" point to the same position in the same
  * schedule?
  */
-isl_bool isl_schedule_node_is_equal(__isl_keep isl_schedule_node *node1,
+int isl_schedule_node_is_equal(__isl_keep isl_schedule_node *node1,
 	__isl_keep isl_schedule_node *node2)
 {
 	int i, n1, n2;
 
 	if (!node1 || !node2)
-		return isl_bool_error;
+		return -1;
 	if (node1 == node2)
-		return isl_bool_true;
+		return 1;
 	if (node1->schedule != node2->schedule)
-		return isl_bool_false;
+		return 0;
 
 	n1 = isl_schedule_node_get_tree_depth(node1);
 	n2 = isl_schedule_node_get_tree_depth(node2);
 	if (n1 != n2)
-		return isl_bool_false;
+		return 0;
 	for (i = 0; i < n1; ++i)
 		if (node1->child_pos[i] != node2->child_pos[i])
-			return isl_bool_false;
+			return 0;
 
-	return isl_bool_true;
+	return 1;
 }
 
 /* Return the number of outer schedule dimensions of "node"
@@ -944,12 +944,12 @@ int isl_schedule_node_get_tree_depth(__isl_keep isl_schedule_node *node)
  *
  * That is, does it point to any node of the schedule other than the root?
  */
-isl_bool isl_schedule_node_has_parent(__isl_keep isl_schedule_node *node)
+int isl_schedule_node_has_parent(__isl_keep isl_schedule_node *node)
 {
 	if (!node)
-		return isl_bool_error;
+		return -1;
 	if (!node->ancestors)
-		return isl_bool_error;
+		return -1;
 
 	return isl_schedule_tree_list_n_schedule_tree(node->ancestors) != 0;
 }
@@ -977,14 +977,13 @@ int isl_schedule_node_get_child_position(__isl_keep isl_schedule_node *node)
 /* Does the parent (if any) of "node" have any children with a smaller child
  * position than this one?
  */
-isl_bool isl_schedule_node_has_previous_sibling(
-	__isl_keep isl_schedule_node *node)
+int isl_schedule_node_has_previous_sibling(__isl_keep isl_schedule_node *node)
 {
 	int n;
-	isl_bool has_parent;
+	int has_parent;
 
 	if (!node)
-		return isl_bool_error;
+		return -1;
 	has_parent = isl_schedule_node_has_parent(node);
 	if (has_parent < 0 || !has_parent)
 		return has_parent;
@@ -997,14 +996,14 @@ isl_bool isl_schedule_node_has_previous_sibling(
 /* Does the parent (if any) of "node" have any children with a greater child
  * position than this one?
  */
-isl_bool isl_schedule_node_has_next_sibling(__isl_keep isl_schedule_node *node)
+int isl_schedule_node_has_next_sibling(__isl_keep isl_schedule_node *node)
 {
 	int n, n_child;
-	isl_bool has_parent;
+	int has_parent;
 	isl_schedule_tree *tree;
 
 	if (!node)
-		return isl_bool_error;
+		return -1;
 	has_parent = isl_schedule_node_has_parent(node);
 	if (has_parent < 0 || !has_parent)
 		return has_parent;
@@ -1012,7 +1011,7 @@ isl_bool isl_schedule_node_has_next_sibling(__isl_keep isl_schedule_node *node)
 	n = isl_schedule_tree_list_n_schedule_tree(node->ancestors);
 	tree = isl_schedule_tree_list_get_schedule_tree(node->ancestors, n - 1);
 	if (!tree)
-		return isl_bool_error;
+		return -1;
 	n_child = isl_schedule_tree_list_n_schedule_tree(tree->children);
 	isl_schedule_tree_free(tree);
 
@@ -1025,10 +1024,10 @@ isl_bool isl_schedule_node_has_next_sibling(__isl_keep isl_schedule_node *node)
  * one child, even if the corresponding isl_schedule_tree does not
  * have any children.
  */
-isl_bool isl_schedule_node_has_children(__isl_keep isl_schedule_node *node)
+int isl_schedule_node_has_children(__isl_keep isl_schedule_node *node)
 {
 	if (!node)
-		return isl_bool_error;
+		return -1;
 	return !isl_schedule_tree_is_leaf(node->tree);
 }
 
@@ -1294,7 +1293,7 @@ static __isl_give isl_schedule_node *traverse(
  * "user" is the user-specified argument for the callback.
  */
 struct isl_schedule_node_preorder_data {
-	isl_bool (*fn)(__isl_keep isl_schedule_node *node, void *user);
+	int (*fn)(__isl_keep isl_schedule_node *node, void *user);
 	void *user;
 };
 
@@ -1317,12 +1316,12 @@ static __isl_give isl_schedule_node *preorder_enter(
 		return NULL;
 
 	do {
-		isl_bool r;
+		int r;
 
 		r = data->fn(node, data->user);
 		if (r < 0)
 			return isl_schedule_node_free(node);
-		if (r == isl_bool_false)
+		if (r == 0)
 			return node;
 	} while (isl_schedule_node_has_children(node) &&
 		(node = isl_schedule_node_first_child(node)) != NULL);
@@ -1350,10 +1349,8 @@ static __isl_give isl_schedule_node *preorder_leave(
  *
  * Return 0 on success and -1 on failure.
  */
-isl_stat isl_schedule_node_foreach_descendant(
-	__isl_keep isl_schedule_node *node,
-	isl_bool (*fn)(__isl_keep isl_schedule_node *node, void *user),
-	void *user)
+int isl_schedule_node_foreach_descendant(__isl_keep isl_schedule_node *node,
+	int (*fn)(__isl_keep isl_schedule_node *node, void *user), void *user)
 {
 	struct isl_schedule_node_preorder_data data = { fn, user };
 
@@ -1361,7 +1358,7 @@ isl_stat isl_schedule_node_foreach_descendant(
 	node = traverse(node, &preorder_enter, &preorder_leave, &data);
 	isl_schedule_node_free(node);
 
-	return node ? isl_stat_ok : isl_stat_error;
+	return node ? 0 : -1;
 }
 
 /* Internal data structure for isl_schedule_node_map_descendant.
@@ -1429,40 +1426,38 @@ __isl_give isl_schedule_node *isl_schedule_node_map_descendant(
  *
  * Return 0 on success and -1 on failure.
  */
-isl_stat isl_schedule_node_foreach_ancestor_top_down(
+int isl_schedule_node_foreach_ancestor_top_down(
 	__isl_keep isl_schedule_node *node,
-	isl_stat (*fn)(__isl_keep isl_schedule_node *node, void *user),
-	void *user)
+	int (*fn)(__isl_keep isl_schedule_node *node, void *user), void *user)
 {
 	int i, n;
 
 	if (!node)
-		return isl_stat_error;
+		return -1;
 
 	n = isl_schedule_node_get_tree_depth(node);
 	for (i = 0; i < n; ++i) {
 		isl_schedule_node *ancestor;
-		isl_stat r;
+		int r;
 
 		ancestor = isl_schedule_node_copy(node);
 		ancestor = isl_schedule_node_ancestor(ancestor, n - i);
 		r = fn(ancestor, user);
 		isl_schedule_node_free(ancestor);
 		if (r < 0)
-			return isl_stat_error;
+			return -1;
 	}
 
-	return isl_stat_ok;
+	return 0;
 }
 
 /* Is any node in the subtree rooted at "node" anchored?
  * That is, do any of these nodes reference the outer band nodes?
  */
-isl_bool isl_schedule_node_is_subtree_anchored(
-	__isl_keep isl_schedule_node *node)
+int isl_schedule_node_is_subtree_anchored(__isl_keep isl_schedule_node *node)
 {
 	if (!node)
-		return isl_bool_error;
+		return -1;
 	return isl_schedule_tree_is_subtree_anchored(node->tree);
 }
 
@@ -1476,11 +1471,11 @@ unsigned isl_schedule_node_band_n_member(__isl_keep isl_schedule_node *node)
 /* Is the band member at position "pos" of the band node "node"
  * marked coincident?
  */
-isl_bool isl_schedule_node_band_member_get_coincident(
+int isl_schedule_node_band_member_get_coincident(
 	__isl_keep isl_schedule_node *node, int pos)
 {
 	if (!node)
-		return isl_bool_error;
+		return -1;
 	return isl_schedule_tree_band_member_get_coincident(node->tree, pos);
 }
 
@@ -1509,11 +1504,10 @@ __isl_give isl_schedule_node *isl_schedule_node_band_member_set_coincident(
 
 /* Is the band node "node" marked permutable?
  */
-isl_bool isl_schedule_node_band_get_permutable(
-	__isl_keep isl_schedule_node *node)
+int isl_schedule_node_band_get_permutable(__isl_keep isl_schedule_node *node)
 {
 	if (!node)
-		return isl_bool_error;
+		return -1;
 
 	return isl_schedule_tree_band_get_permutable(node->tree);
 }

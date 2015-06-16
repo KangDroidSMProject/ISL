@@ -2528,7 +2528,7 @@ __isl_give isl_set *isl_set_gist_params(__isl_take isl_set *set,
  * one basic map in the context of the equalities of the other
  * basic map and check if we get a contradiction.
  */
-isl_bool isl_basic_map_plain_is_disjoint(__isl_keep isl_basic_map *bmap1,
+int isl_basic_map_plain_is_disjoint(__isl_keep isl_basic_map *bmap1,
 	__isl_keep isl_basic_map *bmap2)
 {
 	struct isl_vec *v = NULL;
@@ -2537,17 +2537,17 @@ isl_bool isl_basic_map_plain_is_disjoint(__isl_keep isl_basic_map *bmap1,
 	int i;
 
 	if (!bmap1 || !bmap2)
-		return isl_bool_error;
+		return -1;
 	isl_assert(bmap1->ctx, isl_space_is_equal(bmap1->dim, bmap2->dim),
-			return isl_bool_error);
+			return -1);
 	if (bmap1->n_div || bmap2->n_div)
-		return isl_bool_false;
+		return 0;
 	if (!bmap1->n_eq && !bmap2->n_eq)
-		return isl_bool_false;
+		return 0;
 
 	total = isl_space_dim(bmap1->dim, isl_dim_all);
 	if (total == 0)
-		return isl_bool_false;
+		return 0;
 	v = isl_vec_alloc(bmap1->ctx, 1 + total);
 	if (!v)
 		goto error;
@@ -2582,15 +2582,15 @@ isl_bool isl_basic_map_plain_is_disjoint(__isl_keep isl_basic_map *bmap1,
 	}
 	isl_vec_free(v);
 	free(elim);
-	return isl_bool_false;
+	return 0;
 disjoint:
 	isl_vec_free(v);
 	free(elim);
-	return isl_bool_true;
+	return 1;
 error:
 	isl_vec_free(v);
 	free(elim);
-	return isl_bool_error;
+	return -1;
 }
 
 int isl_basic_set_plain_is_disjoint(__isl_keep isl_basic_set *bset1,
@@ -2613,16 +2613,16 @@ int isl_basic_set_plain_is_disjoint(__isl_keep isl_basic_set *bset1,
  * Otherwise we check if each basic map in "map1" is obviously disjoint
  * from each basic map in "map2".
  */
-isl_bool isl_map_plain_is_disjoint(__isl_keep isl_map *map1,
+int isl_map_plain_is_disjoint(__isl_keep isl_map *map1,
 	__isl_keep isl_map *map2)
 {
 	int i, j;
-	isl_bool disjoint;
-	isl_bool intersect;
-	isl_bool match;
+	int disjoint;
+	int intersect;
+	int match;
 
 	if (!map1 || !map2)
-		return isl_bool_error;
+		return -1;
 
 	disjoint = isl_map_plain_is_empty(map1);
 	if (disjoint < 0 || disjoint)
@@ -2635,31 +2635,31 @@ isl_bool isl_map_plain_is_disjoint(__isl_keep isl_map *map1,
 	match = isl_space_tuple_is_equal(map1->dim, isl_dim_in,
 				map2->dim, isl_dim_in);
 	if (match < 0 || !match)
-		return match < 0 ? isl_bool_error : isl_bool_true;
+		return match < 0 ? -1 : 1;
 
 	match = isl_space_tuple_is_equal(map1->dim, isl_dim_out,
 				map2->dim, isl_dim_out);
 	if (match < 0 || !match)
-		return match < 0 ? isl_bool_error : isl_bool_true;
+		return match < 0 ? -1 : 1;
 
 	match = isl_space_match(map1->dim, isl_dim_param,
 				map2->dim, isl_dim_param);
 	if (match < 0 || !match)
-		return match < 0 ? isl_bool_error : isl_bool_false;
+		return match < 0 ? -1 : 0;
 
 	intersect = isl_map_plain_is_equal(map1, map2);
 	if (intersect < 0 || intersect)
-		return intersect < 0 ? isl_bool_error : isl_bool_false;
+		return intersect < 0 ? -1 : 0;
 
 	for (i = 0; i < map1->n; ++i) {
 		for (j = 0; j < map2->n; ++j) {
-			isl_bool d = isl_basic_map_plain_is_disjoint(map1->p[i],
-								   map2->p[j]);
-			if (d != isl_bool_true)
+			int d = isl_basic_map_plain_is_disjoint(map1->p[i],
+							       map2->p[j]);
+			if (d != 1)
 				return d;
 		}
 	}
-	return isl_bool_true;
+	return 1;
 }
 
 /* Are "map1" and "map2" disjoint?
@@ -2669,10 +2669,10 @@ isl_bool isl_map_plain_is_disjoint(__isl_keep isl_map *map1,
  * If none of these cases apply, we compute the intersection and see if
  * the result is empty.
  */
-isl_bool isl_map_is_disjoint(__isl_keep isl_map *map1, __isl_keep isl_map *map2)
+int isl_map_is_disjoint(__isl_keep isl_map *map1, __isl_keep isl_map *map2)
 {
-	isl_bool disjoint;
-	isl_bool intersect;
+	int disjoint;
+	int intersect;
 	isl_map *test;
 
 	disjoint = isl_map_plain_is_disjoint(map1, map2);
@@ -2689,11 +2689,11 @@ isl_bool isl_map_is_disjoint(__isl_keep isl_map *map1, __isl_keep isl_map *map2)
 
 	intersect = isl_map_plain_is_universe(map1);
 	if (intersect < 0 || intersect)
-		return intersect < 0 ? isl_bool_error : isl_bool_false;
+		return intersect < 0 ? -1 : 0;
 
 	intersect = isl_map_plain_is_universe(map2);
 	if (intersect < 0 || intersect)
-		return intersect < 0 ? isl_bool_error : isl_bool_false;
+		return intersect < 0 ? -1 : 0;
 
 	test = isl_map_intersect(isl_map_copy(map1), isl_map_copy(map2));
 	disjoint = isl_map_is_empty(test);
@@ -2709,11 +2709,11 @@ isl_bool isl_map_is_disjoint(__isl_keep isl_map *map1, __isl_keep isl_map *map2)
  * If none of these cases apply, we compute the intersection and see if
  * the result is empty.
  */
-isl_bool isl_basic_map_is_disjoint(__isl_keep isl_basic_map *bmap1,
+int isl_basic_map_is_disjoint(__isl_keep isl_basic_map *bmap1,
 	__isl_keep isl_basic_map *bmap2)
 {
-	isl_bool disjoint;
-	isl_bool intersect;
+	int disjoint;
+	int intersect;
 	isl_basic_map *test;
 
 	disjoint = isl_basic_map_plain_is_disjoint(bmap1, bmap2);
@@ -2730,11 +2730,11 @@ isl_bool isl_basic_map_is_disjoint(__isl_keep isl_basic_map *bmap1,
 
 	intersect = isl_basic_map_is_universe(bmap1);
 	if (intersect < 0 || intersect)
-		return intersect < 0 ? isl_bool_error : isl_bool_false;
+		return intersect < 0 ? -1 : 0;
 
 	intersect = isl_basic_map_is_universe(bmap2);
 	if (intersect < 0 || intersect)
-		return intersect < 0 ? isl_bool_error : isl_bool_false;
+		return intersect < 0 ? -1 : 0;
 
 	test = isl_basic_map_intersect(isl_basic_map_copy(bmap1),
 		isl_basic_map_copy(bmap2));
@@ -2746,13 +2746,13 @@ isl_bool isl_basic_map_is_disjoint(__isl_keep isl_basic_map *bmap1,
 
 /* Are "bset1" and "bset2" disjoint?
  */
-isl_bool isl_basic_set_is_disjoint(__isl_keep isl_basic_set *bset1,
+int isl_basic_set_is_disjoint(__isl_keep isl_basic_set *bset1,
 	__isl_keep isl_basic_set *bset2)
 {
 	return isl_basic_map_is_disjoint(bset1, bset2);
 }
 
-isl_bool isl_set_plain_is_disjoint(__isl_keep isl_set *set1,
+int isl_set_plain_is_disjoint(__isl_keep isl_set *set1,
 	__isl_keep isl_set *set2)
 {
 	return isl_map_plain_is_disjoint((struct isl_map *)set1,
@@ -2761,7 +2761,7 @@ isl_bool isl_set_plain_is_disjoint(__isl_keep isl_set *set1,
 
 /* Are "set1" and "set2" disjoint?
  */
-isl_bool isl_set_is_disjoint(__isl_keep isl_set *set1, __isl_keep isl_set *set2)
+int isl_set_is_disjoint(__isl_keep isl_set *set1, __isl_keep isl_set *set2)
 {
 	return isl_map_is_disjoint(set1, set2);
 }

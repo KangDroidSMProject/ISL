@@ -750,14 +750,14 @@ int isl_stream_is_empty(__isl_keep isl_stream *s)
 	return 0;
 }
 
-static isl_stat free_keyword(void **p, void *user)
+static int free_keyword(void **p, void *user)
 {
 	struct isl_keyword *keyword = *p;
 
 	free(keyword->name);
 	free(keyword);
 
-	return isl_stat_ok;
+	return 0;
 }
 
 void isl_stream_flush_tokens(__isl_keep isl_stream *s)

@@ -450,10 +450,9 @@ error:
 /* Does "tree" have any node that depends on its position
  * in the complete schedule tree?
  */
-isl_bool isl_schedule_tree_is_subtree_anchored(
-	__isl_keep isl_schedule_tree *tree)
+int isl_schedule_tree_is_subtree_anchored(__isl_keep isl_schedule_tree *tree)
 {
-	return tree ? tree->anchored : isl_bool_error;
+	return tree ? tree->anchored : -1;
 }
 
 /* Does the root node of "tree" depend on its position in the complete
@@ -626,18 +625,18 @@ enum isl_schedule_node_type isl_schedule_tree_get_type(
 
 /* Are "tree1" and "tree2" obviously equal to each other?
  */
-isl_bool isl_schedule_tree_plain_is_equal(__isl_keep isl_schedule_tree *tree1,
+int isl_schedule_tree_plain_is_equal(__isl_keep isl_schedule_tree *tree1,
 	__isl_keep isl_schedule_tree *tree2)
 {
-	isl_bool equal;
+	int equal;
 	int i, n;
 
 	if (!tree1 || !tree2)
-		return isl_bool_error;
+		return -1;
 	if (tree1 == tree2)
-		return isl_bool_true;
+		return 1;
 	if (tree1->type != tree2->type)
-		return isl_bool_false;
+		return 0;
 
 	switch (tree1->type) {
 	case isl_schedule_node_band:
@@ -673,10 +672,10 @@ isl_bool isl_schedule_tree_plain_is_equal(__isl_keep isl_schedule_tree *tree1,
 	case isl_schedule_node_leaf:
 	case isl_schedule_node_sequence:
 	case isl_schedule_node_set:
-		equal = isl_bool_true;
+		equal = 1;
 		break;
 	case isl_schedule_node_error:
-		equal = isl_bool_error;
+		equal = -1;
 		break;
 	}
 
@@ -685,7 +684,7 @@ isl_bool isl_schedule_tree_plain_is_equal(__isl_keep isl_schedule_tree *tree1,
 
 	n = isl_schedule_tree_n_children(tree1);
 	if (n != isl_schedule_tree_n_children(tree2))
-		return isl_bool_false;
+		return 0;
 	for (i = 0; i < n; ++i) {
 		isl_schedule_tree *child1, *child2;
 
@@ -699,7 +698,7 @@ isl_bool isl_schedule_tree_plain_is_equal(__isl_keep isl_schedule_tree *tree1,
 			return equal;
 	}
 
-	return isl_bool_true;
+	return 1;
 }
 
 /* Does "tree" have any children, other than an implicit leaf.
@@ -1010,15 +1009,15 @@ unsigned isl_schedule_tree_band_n_member(__isl_keep isl_schedule_tree *tree)
 /* Is the band member at position "pos" of the band tree root
  * marked coincident?
  */
-isl_bool isl_schedule_tree_band_member_get_coincident(
+int isl_schedule_tree_band_member_get_coincident(
 	__isl_keep isl_schedule_tree *tree, int pos)
 {
 	if (!tree)
-		return isl_bool_error;
+		return -1;
 
 	if (tree->type != isl_schedule_node_band)
 		isl_die(isl_schedule_tree_get_ctx(tree), isl_error_invalid,
-			"not a band node", return isl_bool_error);
+			"not a band node", return -1);
 
 	return isl_schedule_band_member_get_coincident(tree->band, pos);
 }
@@ -1050,15 +1049,14 @@ __isl_give isl_schedule_tree *isl_schedule_tree_band_member_set_coincident(
 
 /* Is the band tree root marked permutable?
  */
-isl_bool isl_schedule_tree_band_get_permutable(
-	__isl_keep isl_schedule_tree *tree)
+int isl_schedule_tree_band_get_permutable(__isl_keep isl_schedule_tree *tree)
 {
 	if (!tree)
-		return isl_bool_error;
+		return -1;
 
 	if (tree->type != isl_schedule_node_band)
 		isl_die(isl_schedule_tree_get_ctx(tree), isl_error_invalid,
-			"not a band node", return isl_bool_error);
+			"not a band node", return -1);
 
 	return isl_schedule_band_get_permutable(tree->band);
 }
@@ -1509,14 +1507,14 @@ __isl_give isl_id *isl_schedule_tree_mark_get_id(
 
 /* Set dim to the range dimension of "map" and abort the search.
  */
-static isl_stat set_range_dim(__isl_take isl_map *map, void *user)
+static int set_range_dim(__isl_take isl_map *map, void *user)
 {
 	int *dim = user;
 
 	*dim = isl_map_dim(map, isl_dim_out);
 	isl_map_free(map);
 
-	return isl_stat_error;
+	return -1;
 }
 
 /* Return the dimension of the range of "umap".

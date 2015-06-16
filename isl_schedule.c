@@ -182,13 +182,13 @@ __isl_keep isl_schedule_tree *isl_schedule_peek_leaf(
 
 /* Are "schedule1" and "schedule2" obviously equal to each other?
  */
-isl_bool isl_schedule_plain_is_equal(__isl_keep isl_schedule *schedule1,
+int isl_schedule_plain_is_equal(__isl_keep isl_schedule *schedule1,
 	__isl_keep isl_schedule *schedule2)
 {
 	if (!schedule1 || !schedule2)
-		return isl_bool_error;
+		return -1;
 	if (schedule1 == schedule2)
-		return isl_bool_true;
+		return 1;
 	return isl_schedule_tree_plain_is_equal(schedule1->root,
 						schedule2->root);
 }
@@ -248,7 +248,7 @@ __isl_give isl_schedule_node *isl_schedule_get_root(
 /* Set max_out to the maximal number of output dimensions over
  * all maps.
  */
-static isl_stat update_max_out(__isl_take isl_map *map, void *user)
+static int update_max_out(__isl_take isl_map *map, void *user)
 {
 	int *max_out = user;
 	int n_out = isl_map_dim(map, isl_dim_out);
@@ -257,7 +257,7 @@ static isl_stat update_max_out(__isl_take isl_map *map, void *user)
 		*max_out = n_out;
 
 	isl_map_free(map);
-	return isl_stat_ok;
+	return 0;
 }
 
 /* Internal data structure for map_pad_range.
@@ -273,7 +273,7 @@ struct isl_pad_schedule_map_data {
 /* Pad the range of the given map with zeros to data->max_out and
  * then add the result to data->res.
  */
-static isl_stat map_pad_range(__isl_take isl_map *map, void *user)
+static int map_pad_range(__isl_take isl_map *map, void *user)
 {
 	struct isl_pad_schedule_map_data *data = user;
 	int i;
@@ -285,9 +285,9 @@ static isl_stat map_pad_range(__isl_take isl_map *map, void *user)
 
 	data->res = isl_union_map_add_map(data->res, map);
 	if (!data->res)
-		return isl_stat_error;
+		return -1;
 
-	return isl_stat_ok;
+	return 0;
 }
 
 /* Pad the ranges of the maps in the union map with zeros such they all have
@@ -337,15 +337,14 @@ __isl_give isl_union_set *isl_schedule_get_domain(
  *
  * Return 0 on success and -1 on failure.
  */
-isl_stat isl_schedule_foreach_schedule_node(__isl_keep isl_schedule *sched,
-	isl_bool (*fn)(__isl_keep isl_schedule_node *node, void *user),
-	void *user)
+int isl_schedule_foreach_schedule_node(__isl_keep isl_schedule *sched,
+	int (*fn)(__isl_keep isl_schedule_node *node, void *user), void *user)
 {
 	isl_schedule_node *node;
-	isl_stat r;
+	int r;
 
 	if (!sched)
-		return isl_stat_error;
+		return -1;
 
 	node = isl_schedule_get_root(sched);
 	r = isl_schedule_node_foreach_descendant(node, fn, user);

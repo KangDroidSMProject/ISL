@@ -634,9 +634,8 @@ static int edge_has_src_and_dst(const void *entry, const void *val)
 
 /* Add the given edge to graph->edge_table[type].
  */
-static isl_stat graph_edge_table_add(isl_ctx *ctx,
-	struct isl_sched_graph *graph, enum isl_edge_type type,
-	struct isl_sched_edge *edge)
+static int graph_edge_table_add(isl_ctx *ctx, struct isl_sched_graph *graph,
+	enum isl_edge_type type, struct isl_sched_edge *edge)
 {
 	struct isl_hash_table_entry *entry;
 	uint32_t hash;
@@ -647,10 +646,10 @@ static isl_stat graph_edge_table_add(isl_ctx *ctx,
 	entry = isl_hash_table_find(ctx, graph->edge_table[type], hash,
 				    &edge_has_src_and_dst, edge, 1);
 	if (!entry)
-		return isl_stat_error;
+		return -1;
 	entry->data = edge;
 
-	return isl_stat_ok;
+	return 0;
 }
 
 /* Allocate the edge_tables based on the maximal number of edges of
@@ -711,12 +710,12 @@ static struct isl_sched_edge *graph_find_edge(struct isl_sched_graph *graph,
 /* Check whether the dependence graph has an edge of the given type
  * between the given two nodes.
  */
-static isl_bool graph_has_edge(struct isl_sched_graph *graph,
+static int graph_has_edge(struct isl_sched_graph *graph,
 	enum isl_edge_type type,
 	struct isl_sched_node *src, struct isl_sched_node *dst)
 {
 	struct isl_sched_edge *edge;
-	isl_bool empty;
+	int empty;
 
 	edge = graph_find_edge(graph, type, src, dst);
 	if (!edge)
@@ -724,7 +723,7 @@ static isl_bool graph_has_edge(struct isl_sched_graph *graph,
 
 	empty = isl_map_plain_is_empty(edge->map);
 	if (empty < 0)
-		return isl_bool_error;
+		return -1;
 
 	return !empty;
 }
@@ -780,11 +779,11 @@ static void graph_remove_edge(struct isl_sched_graph *graph,
 /* Check whether the dependence graph has any edge
  * between the given two nodes.
  */
-static isl_bool graph_has_any_edge(struct isl_sched_graph *graph,
+static int graph_has_any_edge(struct isl_sched_graph *graph,
 	struct isl_sched_node *src, struct isl_sched_node *dst)
 {
 	enum isl_edge_type i;
-	isl_bool r;
+	int r;
 
 	for (i = isl_edge_first; i <= isl_edge_last; ++i) {
 		r = graph_has_edge(graph, i, src, dst);
@@ -806,10 +805,10 @@ static isl_bool graph_has_any_edge(struct isl_sched_graph *graph,
  * of strongly connected components and we cannot ignore
  * conditional validity edges during this detection.
  */
-static isl_bool graph_has_validity_edge(struct isl_sched_graph *graph,
+static int graph_has_validity_edge(struct isl_sched_graph *graph,
 	struct isl_sched_node *src, struct isl_sched_node *dst)
 {
-	isl_bool r;
+	int r;
 
 	r = graph_has_edge(graph, isl_edge_validity, src, dst);
 	if (r < 0 || r)
@@ -883,7 +882,7 @@ static void graph_free(isl_ctx *ctx, struct isl_sched_graph *graph)
 /* For each "set" on which this function is called, increment
  * graph->n by one and update graph->maxvar.
  */
-static isl_stat init_n_maxvar(__isl_take isl_set *set, void *user)
+static int init_n_maxvar(__isl_take isl_set *set, void *user)
 {
 	struct isl_sched_graph *graph = user;
 	int nvar = isl_set_dim(set, isl_dim_set);
@@ -894,19 +893,19 @@ static isl_stat init_n_maxvar(__isl_take isl_set *set, void *user)
 
 	isl_set_free(set);
 
-	return isl_stat_ok;
+	return 0;
 }
 
 /* Add the number of basic maps in "map" to *n.
  */
-static isl_stat add_n_basic_map(__isl_take isl_map *map, void *user)
+static int add_n_basic_map(__isl_take isl_map *map, void *user)
 {
 	int *n = user;
 
 	*n += isl_map_n_basic_map(map);
 	isl_map_free(map);
 
-	return isl_stat_ok;
+	return 0;
 }
 
 /* Compute the number of rows that should be allocated for the schedule.
@@ -968,9 +967,9 @@ static int has_any_defining_equality(__isl_keep isl_basic_set *bset)
  * If "compressed" is not set, then "hull", "compress" and "decompress"
  * should be NULL.
  */
-static isl_stat add_node(struct isl_sched_graph *graph,
-	__isl_take isl_space *space, int nvar, int compressed,
-	__isl_take isl_set *hull, __isl_take isl_multi_aff *compress,
+static int add_node(struct isl_sched_graph *graph, __isl_take isl_space *space,
+	int nvar, int compressed, __isl_take isl_set *hull,
+	__isl_take isl_multi_aff *compress,
 	__isl_take isl_multi_aff *decompress)
 {
 	int nparam;
@@ -979,7 +978,7 @@ static isl_stat add_node(struct isl_sched_graph *graph,
 	int *coincident;
 
 	if (!space)
-		return isl_stat_error;
+		return -1;
 
 	ctx = isl_space_get_ctx(space);
 	nparam = isl_space_dim(space, isl_dim_param);
@@ -1000,11 +999,11 @@ static isl_stat add_node(struct isl_sched_graph *graph,
 	graph->n++;
 
 	if (!space || !sched || (graph->max_row && !coincident))
-		return isl_stat_error;
+		return -1;
 	if (compressed && (!hull || !compress || !decompress))
-		return isl_stat_error;
+		return -1;
 
-	return isl_stat_ok;
+	return 0;
 }
 
 /* Add a new node to the graph representing the given set.
@@ -1013,7 +1012,7 @@ static isl_stat add_node(struct isl_sched_graph *graph,
  * we perform variable compression such that we can perform
  * the scheduling on the compressed domain.
  */
-static isl_stat extract_node(__isl_take isl_set *set, void *user)
+static int extract_node(__isl_take isl_set *set, void *user)
 {
 	int nvar;
 	int has_equality;
@@ -1049,7 +1048,7 @@ static isl_stat extract_node(__isl_take isl_set *set, void *user)
 error:
 	isl_basic_set_free(hull);
 	isl_space_free(space);
-	return isl_stat_error;
+	return -1;
 }
 
 struct isl_extract_edge_data {
@@ -1196,7 +1195,7 @@ static __isl_give isl_map *map_intersect_domains(__isl_take isl_map *tagged,
  * outside of these domains, while the scheduler no longer has
  * any control over those outside parts.
  */
-static isl_stat extract_edge(__isl_take isl_map *map, void *user)
+static int extract_edge(__isl_take isl_map *map, void *user)
 {
 	isl_ctx *ctx = isl_map_get_ctx(map);
 	struct isl_extract_edge_data *data = user;
@@ -1226,7 +1225,7 @@ static isl_stat extract_edge(__isl_take isl_map *map, void *user)
 	if (!src || !dst) {
 		isl_map_free(map);
 		isl_map_free(tagged);
-		return isl_stat_ok;
+		return 0;
 	}
 
 	if (src->compressed || dst->compressed) {
@@ -1268,7 +1267,7 @@ static isl_stat extract_edge(__isl_take isl_map *map, void *user)
 	edge = graph_find_matching_edge(graph, &graph->edge[graph->n_edge]);
 	if (!edge) {
 		graph->n_edge++;
-		return isl_stat_error;
+		return -1;
 	}
 	if (edge == &graph->edge[graph->n_edge])
 		return graph_edge_table_add(ctx, graph, data->type,
@@ -1283,9 +1282,9 @@ static isl_stat extract_edge(__isl_take isl_map *map, void *user)
 /* Check whether there is any dependence from node[j] to node[i]
  * or from node[i] to node[j].
  */
-static isl_bool node_follows_weak(int i, int j, void *user)
+static int node_follows_weak(int i, int j, void *user)
 {
-	isl_bool f;
+	int f;
 	struct isl_sched_graph *graph = user;
 
 	f = graph_has_any_edge(graph, &graph->node[j], &graph->node[i]);
@@ -1297,7 +1296,7 @@ static isl_bool node_follows_weak(int i, int j, void *user)
 /* Check whether there is a (conditional) validity dependence from node[j]
  * to node[i], forcing node[i] to follow node[j].
  */
-static isl_bool node_follows_strong(int i, int j, void *user)
+static int node_follows_strong(int i, int j, void *user)
 {
 	struct isl_sched_graph *graph = user;
 

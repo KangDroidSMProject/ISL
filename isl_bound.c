@@ -153,10 +153,10 @@ static int guarded_poly_bound(__isl_take isl_basic_set *bset,
 	return r;
 }
 
-static isl_stat guarded_qp(__isl_take isl_qpolynomial *qp, void *user)
+static int guarded_qp(__isl_take isl_qpolynomial *qp, void *user)
 {
 	struct isl_bound *bound = (struct isl_bound *)user;
-	isl_stat r;
+	int r;
 
 	r = isl_qpolynomial_as_polynomial_on_domain(qp, bound->bset,
 						    &guarded_poly_bound, user);
@@ -164,10 +164,10 @@ static isl_stat guarded_qp(__isl_take isl_qpolynomial *qp, void *user)
 	return r;
 }
 
-static isl_stat basic_guarded_fold(__isl_take isl_basic_set *bset, void *user)
+static int basic_guarded_fold(__isl_take isl_basic_set *bset, void *user)
 {
 	struct isl_bound *bound = (struct isl_bound *)user;
-	isl_stat r;
+	int r;
 
 	bound->bset = bset;
 	r = isl_qpolynomial_fold_foreach_qpolynomial(bound->fold,
@@ -176,7 +176,7 @@ static isl_stat basic_guarded_fold(__isl_take isl_basic_set *bset, void *user)
 	return r;
 }
 
-static isl_stat guarded_fold(__isl_take isl_set *set,
+static int guarded_fold(__isl_take isl_set *set,
 	__isl_take isl_qpolynomial_fold *fold, void *user)
 {
 	struct isl_bound *bound = (struct isl_bound *)user;
@@ -195,11 +195,11 @@ static isl_stat guarded_fold(__isl_take isl_set *set,
 	isl_set_free(set);
 	isl_qpolynomial_fold_free(fold);
 
-	return isl_stat_ok;
+	return 0;
 error:
 	isl_set_free(set);
 	isl_qpolynomial_fold_free(fold);
-	return isl_stat_error;
+	return -1;
 }
 
 __isl_give isl_pw_qpolynomial_fold *isl_pw_qpolynomial_fold_bound(
@@ -287,7 +287,7 @@ struct isl_union_bound_data {
 	isl_union_pw_qpolynomial_fold *res;
 };
 
-static isl_stat bound_pw(__isl_take isl_pw_qpolynomial *pwqp, void *user)
+static int bound_pw(__isl_take isl_pw_qpolynomial *pwqp, void *user)
 {
 	struct isl_union_bound_data *data = user;
 	isl_pw_qpolynomial_fold *pwf;
@@ -297,7 +297,7 @@ static isl_stat bound_pw(__isl_take isl_pw_qpolynomial *pwqp, void *user)
 	data->res = isl_union_pw_qpolynomial_fold_fold_pw_qpolynomial_fold(
 								data->res, pwf);
 
-	return isl_stat_ok;
+	return 0;
 }
 
 __isl_give isl_union_pw_qpolynomial_fold *isl_union_pw_qpolynomial_bound(
