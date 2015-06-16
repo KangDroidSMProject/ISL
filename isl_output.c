@@ -1148,7 +1148,7 @@ static int print_map_body(__isl_take isl_map *map, void *user)
 static __isl_give isl_printer *isl_union_map_print_isl(
 	__isl_keep isl_union_map *umap, __isl_take isl_printer *p)
 {
-	struct isl_union_print_data data = { p, 1 };
+	struct isl_union_print_data data;
 	struct isl_print_space_data space_data = { 0 };
 	isl_space *dim;
 
@@ -1159,6 +1159,8 @@ static __isl_give isl_printer *isl_union_map_print_isl(
 	}
 	isl_space_free(dim);
 	p = isl_printer_print_str(p, s_open_set[0]);
+	data.p = p;
+	data.first = 1;
 	isl_union_map_foreach_map(umap, &print_map_body, &data);
 	p = data.p;
 	p = isl_printer_print_str(p, s_close_set[0]);
@@ -1834,7 +1836,7 @@ static int print_pwqp_body(__isl_take isl_pw_qpolynomial *pwqp, void *user)
 static __isl_give isl_printer *print_union_pw_qpolynomial_isl(
 	__isl_take isl_printer *p, __isl_keep isl_union_pw_qpolynomial *upwqp)
 {
-	struct isl_union_print_data data = { p, 1 };
+	struct isl_union_print_data data;
 	struct isl_print_space_data space_data = { 0 };
 	isl_space *dim;
 
@@ -1845,6 +1847,8 @@ static __isl_give isl_printer *print_union_pw_qpolynomial_isl(
 	}
 	isl_space_free(dim);
 	p = isl_printer_print_str(p, "{ ");
+	data.p = p;
+	data.first = 1;
 	isl_union_pw_qpolynomial_foreach_pw_qpolynomial(upwqp, &print_pwqp_body,
 							&data);
 	p = data.p;
@@ -1976,7 +1980,7 @@ static __isl_give isl_printer *print_union_pw_qpolynomial_fold_isl(
 	__isl_take isl_printer *p,
 	__isl_keep isl_union_pw_qpolynomial_fold *upwf)
 {
-	struct isl_union_print_data data = { p, 1 };
+	struct isl_union_print_data data;
 	struct isl_print_space_data space_data = { 0 };
 	isl_space *dim;
 
@@ -1987,6 +1991,8 @@ static __isl_give isl_printer *print_union_pw_qpolynomial_fold_isl(
 	}
 	isl_space_free(dim);
 	p = isl_printer_print_str(p, "{ ");
+	data.p = p;
+	data.first = 1;
 	isl_union_pw_qpolynomial_fold_foreach_pw_qpolynomial_fold(upwf,
 							&print_pwf_body, &data);
 	p = data.p;
@@ -2536,7 +2542,7 @@ static int print_pw_multi_aff_body_wrap(__isl_take isl_pw_multi_aff *pma,
 static __isl_give isl_printer *print_union_pw_multi_aff_isl(
 	__isl_take isl_printer *p, __isl_keep isl_union_pw_multi_aff *upma)
 {
-	struct isl_union_print_data data = { p, 1 };
+	struct isl_union_print_data data;
 	struct isl_print_space_data space_data = { 0 };
 	isl_space *space;
 
@@ -2547,6 +2553,8 @@ static __isl_give isl_printer *print_union_pw_multi_aff_isl(
 	}
 	isl_space_free(space);
 	p = isl_printer_print_str(p, s_open_set[0]);
+	data.p = p;
+	data.first = 1;
 	isl_union_pw_multi_aff_foreach_pw_multi_aff(upma,
 					&print_pw_multi_aff_body_wrap, &data);
 	p = data.p;

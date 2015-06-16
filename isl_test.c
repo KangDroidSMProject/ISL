@@ -1156,6 +1156,8 @@ struct {
 	  "{ [a, b, c] : a <= 15 }" },
 	{ "{ : }", "{ : 1 = 0 }", "{ : }" },
 	{ "{ : 1 = 0 }", "{ : 1 = 0 }", "{ : }" },
+	{ "[M] -> { [x] : exists (e0 = floor((-2 + x)/3): 3e0 = -2 + x) }",
+	  "[M] -> { [3M] }" , "[M] -> { [x] : 1 = 0 }" },
 };
 
 static int test_gist(struct isl_ctx *ctx)
@@ -1167,18 +1169,29 @@ static int test_gist(struct isl_ctx *ctx)
 	int equal;
 
 	for (i = 0; i < ARRAY_SIZE(gist_tests); ++i) {
+		int equal_input;
+		isl_basic_set *copy;
+
 		bset1 = isl_basic_set_read_from_str(ctx, gist_tests[i].set);
 		bset2 = isl_basic_set_read_from_str(ctx, gist_tests[i].context);
+		copy = isl_basic_set_copy(bset1);
 		bset1 = isl_basic_set_gist(bset1, bset2);
 		bset2 = isl_basic_set_read_from_str(ctx, gist_tests[i].gist);
 		equal = isl_basic_set_is_equal(bset1, bset2);
 		isl_basic_set_free(bset1);
 		isl_basic_set_free(bset2);
-		if (equal < 0)
+		bset1 = isl_basic_set_read_from_str(ctx, gist_tests[i].set);
+		equal_input = isl_basic_set_is_equal(bset1, copy);
+		isl_basic_set_free(bset1);
+		isl_basic_set_free(copy);
+		if (equal < 0 || equal_input < 0)
 			return -1;
 		if (!equal)
 			isl_die(ctx, isl_error_unknown,
 				"incorrect gist result", return -1);
+		if (!equal_input)
+			isl_die(ctx, isl_error_unknown,
+				"gist modified input", return -1);
 	}
 
 	test_gist_case(ctx, "gist1");
@@ -4321,6 +4334,9 @@ struct {
 	{ "{ B[i] -> C[([i/2])] }", "{ B[5] }", "{ C[2] }" },
 	{ "[n] -> { B[i,j] -> C[([i/2]) + 2j] }",
 	  "[n] -> { B[n,[n/3]] }", "[n] -> { C[([n/2]) + 2*[n/3]] }", },
+	{ "{ [i, j] -> [floor((i)/4) + floor((2*i+j)/5)] }",
+	  "{ [i, j] -> [floor((i)/3), j] }",
+	  "{ [i, j] -> [(floor((i)/12) + floor((j + 2*floor((i)/3))/5))] }" },
 };
 
 static int test_pullback(isl_ctx *ctx)
@@ -4348,25 +4364,33 @@ static int test_pullback(isl_ctx *ctx)
 	return 0;
 }
 
-/* Check that negation is printed correctly.
+/* Check that negation is printed correctly and that equal expressions
+ * are correctly identified.
  */
 static int test_ast(isl_ctx *ctx)
 {
 	isl_ast_expr *expr, *expr1, *expr2, *expr3;
 	char *str;
-	int ok;
+	int ok, equal;
 
 	expr1 = isl_ast_expr_from_id(isl_id_alloc(ctx, "A", NULL));
 	expr2 = isl_ast_expr_from_id(isl_id_alloc(ctx, "B", NULL));
 	expr = isl_ast_expr_add(expr1, expr2);
+	expr2 = isl_ast_expr_copy(expr);
 	expr = isl_ast_expr_neg(expr);
+	expr2 = isl_ast_expr_neg(expr2);
+	equal = isl_ast_expr_is_equal(expr, expr2);
 	str = isl_ast_expr_to_str(expr);
 	ok = str ? !strcmp(str, "-(A + B)") : -1;
 	free(str);
 	isl_ast_expr_free(expr);
+	isl_ast_expr_free(expr2);
 
-	if (ok < 0)
+	if (ok < 0 || equal < 0)
 		return -1;
+	if (!equal)
+		isl_die(ctx, isl_error_unknown,
+			"equal expressions not considered equal", return -1);
 	if (!ok)
 		isl_die(ctx, isl_error_unknown,
 			"isl_ast_expr printed incorrectly", return -1);
