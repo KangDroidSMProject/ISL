@@ -358,9 +358,6 @@ int isl_ast_expr_is_equal(__isl_keep isl_ast_expr *expr1,
 	case isl_ast_expr_error:
 		return -1;
 	}
-
-	isl_die(isl_ast_expr_get_ctx(expr1), isl_error_internal,
-		"unhandled case", return isl_bool_error);
 }
 
 /* Create a new operation expression of operation type "op",
