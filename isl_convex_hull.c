@@ -1315,12 +1315,12 @@ static struct isl_basic_set *convex_hull_pair_pointed(
 
 	if (!bset1 || !bset2)
 		goto error;
-	ctx = bset1->ctx;
+	ctx = isl_basic_set_get_ctx(bset1);
 	dir = valid_direction(isl_basic_set_copy(bset1),
 				isl_basic_set_copy(bset2));
 	if (!dir)
 		goto error;
-	T = isl_mat_alloc(bset1->ctx, dir->size, dir->size);
+	T = isl_mat_alloc(ctx, dir->size, dir->size);
 	if (!T)
 		goto error;
 	isl_seq_cpy(T->row[0], dir->block.data, dir->size);
@@ -1914,6 +1914,18 @@ error:
 	return NULL;
 }
 
+/* Return an empty basic map living in the same space as "map".
+ */
+static __isl_give isl_basic_map *replace_map_by_empty_basic_map(
+	__isl_take isl_map *map)
+{
+	isl_space *space;
+
+	space = isl_map_get_space(map);
+	isl_map_free(map);
+	return isl_basic_map_empty(space);
+}
+
 /* Compute the convex hull of a map.
  *
  * The implementation was inspired by "Extended Convex Hull" by Fukuda et al.,
@@ -1926,19 +1938,14 @@ struct isl_basic_map *isl_map_convex_hull(struct isl_map *map)
 	struct isl_basic_set *affine_hull = NULL;
 	struct isl_basic_map *convex_hull = NULL;
 	struct isl_set *set = NULL;
-	struct isl_ctx *ctx;
 
 	map = isl_map_detect_equalities(map);
 	map = isl_map_align_divs(map);
 	if (!map)
 		goto error;
 
-	ctx = map->ctx;
-	if (map->n == 0) {
-		convex_hull = isl_basic_map_empty_like_map(map);
-		isl_map_free(map);
-		return convex_hull;
-	}
+	if (map->n == 0)
+		return replace_map_by_empty_basic_map(map);
 
 	model = isl_basic_map_copy(map->p[0]);
 	set = isl_map_underlying_set(map);
@@ -2332,11 +2339,8 @@ static __isl_give isl_basic_map *map_simple_hull(__isl_take isl_map *map,
 
 	if (!map)
 		return NULL;
-	if (map->n == 0) {
-		hull = isl_basic_map_empty_like_map(map);
-		isl_map_free(map);
-		return hull;
-	}
+	if (map->n == 0)
+		return replace_map_by_empty_basic_map(map);
 	if (map->n == 1) {
 		hull = isl_basic_map_copy(map->p[0]);
 		isl_map_free(map);
@@ -2639,114 +2643,125 @@ error:
 	return NULL;
 }
 
-/* Compute a superset of the convex hull of "set" that is described
+/* Compute a superset of the convex hull of "map" that is described
  * by only constraints in the elements of "list".
  *
  * If the list is empty, then we can only describe the universe set.
- * If the input set is empty, then all constraints are valid, so
+ * If the input map is empty, then all constraints are valid, so
  * we return the intersection of the elements in "list".
  *
  * Otherwise, we align all divs and temporarily treat them
  * as regular variables, computing the unshifted simple hull in
  * uset_unshifted_simple_hull_from_basic_set_list.
  */
-static __isl_give isl_basic_set *set_unshifted_simple_hull_from_basic_set_list(
-	__isl_take isl_set *set, __isl_take isl_basic_set_list *list)
+static __isl_give isl_basic_map *map_unshifted_simple_hull_from_basic_map_list(
+	__isl_take isl_map *map, __isl_take isl_basic_map_list *list)
 {
-	isl_basic_set *model;
-	isl_basic_set *hull;
+	isl_basic_map *model;
+	isl_basic_map *hull;
+	isl_set *set;
+	isl_basic_set_list *bset_list;
 
-	if (!set || !list)
+	if (!map || !list)
 		goto error;
 
-	if (isl_basic_set_list_n_basic_set(list) == 0) {
+	if (isl_basic_map_list_n_basic_map(list) == 0) {
 		isl_space *space;
 
-		space = isl_set_get_space(set);
-		isl_set_free(set);
-		isl_basic_set_list_free(list);
-		return isl_basic_set_universe(space);
+		space = isl_map_get_space(map);
+		isl_map_free(map);
+		isl_basic_map_list_free(list);
+		return isl_basic_map_universe(space);
 	}
-	if (isl_set_plain_is_empty(set)) {
-		isl_set_free(set);
-		return isl_basic_set_list_intersect(list);
+	if (isl_map_plain_is_empty(map)) {
+		isl_map_free(map);
+		return isl_basic_map_list_intersect(list);
 	}
 
-	set = isl_set_align_divs_to_basic_set_list(set, list);
-	if (!set)
+	map = isl_map_align_divs_to_basic_map_list(map, list);
+	if (!map)
 		goto error;
-	list = isl_basic_set_list_align_divs_to_basic_set(list, set->p[0]);
+	list = isl_basic_map_list_align_divs_to_basic_map(list, map->p[0]);
 
-	model = isl_basic_set_list_get_basic_set(list, 0);
+	model = isl_basic_map_list_get_basic_map(list, 0);
 
-	set = isl_set_to_underlying_set(set);
-	list = isl_basic_set_list_underlying_set(list);
+	set = isl_map_underlying_set(map);
+	bset_list = isl_basic_map_list_underlying_set(list);
 
-	hull = uset_unshifted_simple_hull_from_basic_set_list(set, list);
+	hull = uset_unshifted_simple_hull_from_basic_set_list(set, bset_list);
 	hull = isl_basic_map_overlying_set(hull, model);
 
 	return hull;
 error:
-	isl_set_free(set);
-	isl_basic_set_list_free(list);
+	isl_map_free(map);
+	isl_basic_map_list_free(list);
 	return NULL;
 }
 
-/* Return a sequence of the basic sets that make up the sets in "list".
+/* Return a sequence of the basic maps that make up the maps in "list".
  */
-static __isl_give isl_basic_set_list *collect_basic_sets(
-	__isl_take isl_set_list *list)
+static __isl_give isl_basic_set_list *collect_basic_maps(
+	__isl_take isl_map_list *list)
 {
 	int i, n;
 	isl_ctx *ctx;
-	isl_basic_set_list *bset_list;
+	isl_basic_map_list *bmap_list;
 
 	if (!list)
 		return NULL;
-	n = isl_set_list_n_set(list);
-	ctx = isl_set_list_get_ctx(list);
-	bset_list = isl_basic_set_list_alloc(ctx, 0);
+	n = isl_map_list_n_map(list);
+	ctx = isl_map_list_get_ctx(list);
+	bmap_list = isl_basic_map_list_alloc(ctx, 0);
 
 	for (i = 0; i < n; ++i) {
-		isl_set *set;
-		isl_basic_set_list *list_i;
+		isl_map *map;
+		isl_basic_map_list *list_i;
 
-		set = isl_set_list_get_set(list, i);
-		set = isl_set_compute_divs(set);
-		list_i = isl_set_get_basic_set_list(set);
-		isl_set_free(set);
-		bset_list = isl_basic_set_list_concat(bset_list, list_i);
+		map = isl_map_list_get_map(list, i);
+		map = isl_map_compute_divs(map);
+		list_i = isl_map_get_basic_map_list(map);
+		isl_map_free(map);
+		bmap_list = isl_basic_map_list_concat(bmap_list, list_i);
 	}
 
-	isl_set_list_free(list);
-	return bset_list;
+	isl_map_list_free(list);
+	return bmap_list;
+}
+
+/* Compute a superset of the convex hull of "map" that is described
+ * by only constraints in the elements of "list".
+ *
+ * If "map" is the universe, then the convex hull (and therefore
+ * any superset of the convexhull) is the universe as well.
+ *
+ * Otherwise, we collect all the basic maps in the map list and
+ * continue with map_unshifted_simple_hull_from_basic_map_list.
+ */
+__isl_give isl_basic_map *isl_map_unshifted_simple_hull_from_map_list(
+	__isl_take isl_map *map, __isl_take isl_map_list *list)
+{
+	isl_basic_map_list *bmap_list;
+	int is_universe;
+
+	is_universe = isl_map_plain_is_universe(map);
+	if (is_universe < 0)
+		map = isl_map_free(map);
+	if (is_universe < 0 || is_universe) {
+		isl_map_list_free(list);
+		return isl_map_unshifted_simple_hull(map);
+	}
+
+	bmap_list = collect_basic_maps(list);
+	return map_unshifted_simple_hull_from_basic_map_list(map, bmap_list);
 }
 
 /* Compute a superset of the convex hull of "set" that is described
  * by only constraints in the elements of "list".
- *
- * If "set" is the universe, then the convex hull (and therefore
- * any superset of the convexhull) is the universe as well.
- *
- * Otherwise, we collect all the basic sets in the set list and
- * continue with set_unshifted_simple_hull_from_basic_set_list.
  */
 __isl_give isl_basic_set *isl_set_unshifted_simple_hull_from_set_list(
 	__isl_take isl_set *set, __isl_take isl_set_list *list)
 {
-	isl_basic_set_list *bset_list;
-	int is_universe;
-
-	is_universe = isl_set_plain_is_universe(set);
-	if (is_universe < 0)
-		set = isl_set_free(set);
-	if (is_universe < 0 || is_universe) {
-		isl_set_list_free(list);
-		return isl_set_unshifted_simple_hull(set);
-	}
-
-	bset_list = collect_basic_sets(list);
-	return set_unshifted_simple_hull_from_basic_set_list(set, bset_list);
+	return isl_map_unshifted_simple_hull_from_map_list(set, list);
 }
 
 /* Given a set "set", return parametric bounds on the dimension "dim".

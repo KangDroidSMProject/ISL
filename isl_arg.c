@@ -20,6 +20,8 @@ ISL_ARG_PHANTOM_BOOL('h', "help", NULL, "print this help, then exit")
 
 static void set_default_choice(struct isl_arg *arg, void *opt)
 {
+	if (arg->offset == (size_t) -1)
+		return;
 	*(unsigned *)(((char *)opt) + arg->offset) = arg->u.choice.default_value;
 }
 
@@ -386,7 +388,6 @@ static void print_default(struct isl_arg *decl, const char *def, int pos)
 			printf("\n%30s", "");
 		else
 			printf("%*s", 30 - pos, "");
-		pos = 0;
 	} else {
 		if (pos + len >= 48)
 			printf("\n%30s", "");
@@ -456,7 +457,6 @@ static void print_default_flags(struct isl_arg *decl, void *opt, int pos)
 			printf("\n%30s", "");
 		else
 			printf("%*s", 30 - pos, "");
-		pos = 0;
 	} else {
 		if (pos + len >= 48)
 			printf("\n%30s", "");

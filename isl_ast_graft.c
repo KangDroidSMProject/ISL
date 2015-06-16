@@ -114,7 +114,11 @@ static int equal_independent_guards(__isl_keep isl_ast_graft_list *list,
 		return -1;
 
 	depth = isl_ast_build_get_depth(build);
-	skip = isl_set_involves_dims(graft_0->guard, isl_dim_set, depth, 1);
+	if (isl_set_dim(graft_0->guard, isl_dim_set) <= depth)
+		skip = 0;
+	else
+		skip = isl_set_involves_dims(graft_0->guard,
+						isl_dim_set, depth, 1);
 	if (skip < 0 || skip) {
 		isl_ast_graft_free(graft_0);
 		return skip < 0 ? -1 : 0;
@@ -254,7 +258,7 @@ struct isl_insert_if_data {
 	isl_ast_build *build;
 };
 
-static int insert_if(__isl_take isl_basic_set *bset, void *user);
+static isl_stat insert_if(__isl_take isl_basic_set *bset, void *user);
 
 /* Insert an if node around "node" testing the condition encoded
  * in guard "guard".
@@ -278,7 +282,7 @@ static __isl_give isl_ast_node *ast_node_insert_if(
 		isl_ast_node *if_node;
 		isl_ast_expr *expr;
 
-		expr = isl_ast_build_expr_from_set(build, guard);
+		expr = isl_ast_build_expr_from_set_internal(build, guard);
 
 		if_node = isl_ast_node_alloc_if(expr);
 		return isl_ast_node_if_set_then(if_node, node);
@@ -300,7 +304,7 @@ static __isl_give isl_ast_node *ast_node_insert_if(
 /* Insert an if node around a copy of "data->node" testing the condition
  * encoded in guard "bset" and add the result to data->list.
  */
-static int insert_if(__isl_take isl_basic_set *bset, void *user)
+static isl_stat insert_if(__isl_take isl_basic_set *bset, void *user)
 {
 	struct isl_insert_if_data *data = user;
 	isl_ast_node *node;
@@ -311,7 +315,7 @@ static int insert_if(__isl_take isl_basic_set *bset, void *user)
 	node = ast_node_insert_if(node, set, data->build);
 	data->list = isl_ast_node_list_add(data->list, node);
 
-	return 0;
+	return isl_stat_ok;
 }
 
 /* Insert an if node around graft->node testing the condition encoded
@@ -649,6 +653,42 @@ static __isl_give isl_ast_graft_list *insert_pending_guard_nodes(
 	return res;
 }
 
+/* For each graft in "list",
+ * insert an if node around graft->node testing the condition encoded
+ * in graft->guard, assuming graft->guard involves any conditions.
+ * Subsequently remove the guards from the grafts.
+ */
+__isl_give isl_ast_graft_list *isl_ast_graft_list_insert_pending_guard_nodes(
+	__isl_take isl_ast_graft_list *list, __isl_keep isl_ast_build *build)
+{
+	int i, n;
+	isl_set *universe;
+
+	list = insert_pending_guard_nodes(list, build);
+	if (!list)
+		return NULL;
+
+	universe = isl_set_universe(isl_ast_build_get_space(build, 1));
+	n = isl_ast_graft_list_n_ast_graft(list);
+	for (i = 0; i < n; ++i) {
+		isl_ast_graft *graft;
+
+		graft = isl_ast_graft_list_get_ast_graft(list, i);
+		if (!graft)
+			break;
+		isl_set_free(graft->guard);
+		graft->guard = isl_set_copy(universe);
+		if (!graft->guard)
+			graft = isl_ast_graft_free(graft);
+		list = isl_ast_graft_list_set_ast_graft(list, i, graft);
+	}
+	isl_set_free(universe);
+	if (i < n)
+		return isl_ast_graft_list_free(list);
+
+	return list;
+}
+
 /* Collect the nodes contained in the grafts in "list" in a node list.
  */
 static __isl_give isl_ast_node_list *extract_node_list(
@@ -916,6 +956,25 @@ __isl_give isl_ast_graft *isl_ast_graft_insert_for(
 	return graft;
 error:
 	isl_ast_node_free(node);
+	isl_ast_graft_free(graft);
+	return NULL;
+}
+
+/* Insert a mark governing the current graft->node.
+ */
+__isl_give isl_ast_graft *isl_ast_graft_insert_mark(
+	__isl_take isl_ast_graft *graft, __isl_take isl_id *mark)
+{
+	if (!graft)
+		goto error;
+
+	graft->node = isl_ast_node_alloc_mark(mark, graft->node);
+	if (!graft->node)
+		return isl_ast_graft_free(graft);
+
+	return graft;
+error:
+	isl_id_free(mark);
 	isl_ast_graft_free(graft);
 	return NULL;
 }
