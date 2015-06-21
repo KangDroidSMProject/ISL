@@ -2606,30 +2606,33 @@ static int test_union(isl_ctx *ctx)
 
 /* Check that computing a bound of a non-zero polynomial over an unbounded
  * domain does not produce a rational value.
- * In particular, check that the upper bound is infinity.
+ * Ideally, we want the value to be infinity, but we accept NaN for now.
+ * We certainly do not want to obtain the value zero.
  */
 static int test_bound_unbounded_domain(isl_ctx *ctx)
 {
 	const char *str;
+	isl_set *dom;
+	isl_point *pnt;
 	isl_pw_qpolynomial *pwqp;
-	isl_pw_qpolynomial_fold *pwf, *pwf2;
-	isl_bool equal;
+	isl_pw_qpolynomial_fold *pwf;
+	isl_val *v;
+	int is_rat;
 
 	str = "{ [m,n] -> -m * n }";
 	pwqp = isl_pw_qpolynomial_read_from_str(ctx, str);
 	pwf = isl_pw_qpolynomial_bound(pwqp, isl_fold_max, NULL);
-	str = "{ infty }";
-	pwqp = isl_pw_qpolynomial_read_from_str(ctx, str);
-	pwf2 = isl_pw_qpolynomial_bound(pwqp, isl_fold_max, NULL);
-	equal = isl_pw_qpolynomial_fold_plain_is_equal(pwf, pwf2);
-	isl_pw_qpolynomial_fold_free(pwf);
-	isl_pw_qpolynomial_fold_free(pwf2);
+	dom = isl_pw_qpolynomial_fold_domain(isl_pw_qpolynomial_fold_copy(pwf));
+	pnt = isl_set_sample_point(dom);
+	v = isl_pw_qpolynomial_fold_eval(pwf, pnt);
+	is_rat = isl_val_is_rat(v);
+	isl_val_free(v);
 
-	if (equal < 0)
+	if (is_rat < 0)
 		return -1;
-	if (!equal)
+	if (is_rat)
 		isl_die(ctx, isl_error_unknown,
-			"expecting infinite polynomial bound", return -1);
+			"unexpected rational value", return -1);
 
 	return 0;
 }
