@@ -648,6 +648,8 @@ llvm_config_found
 CLANG_LIBS
 CLANG_LDFLAGS
 CLANG_CXXFLAGS
+SMALL_INT_OPT_FALSE
+SMALL_INT_OPT_TRUE
 GMP_FOR_MP_FALSE
 GMP_FOR_MP_TRUE
 IMATH_FOR_MP_FALSE
@@ -1462,7 +1464,8 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
-  --with-int=gmp|imath    Which package to use to represent multi-precision
+  --with-int=gmp|imath|imath-32
+                          Which package to use to represent multi-precision
                           integers [default=gmp]
   --with-gmp=system|build Which gmp to use [default=system]
   --with-gmp-prefix=DIR   Prefix of gmp installation
@@ -17185,10 +17188,10 @@ else
 fi
 
 case "$with_int" in
-gmp|imath)
+gmp|imath|imath-32)
 	;;
 *)
-	as_fn_error $? "bad value ${withval} for --with-int (use gmp or imath)" "$LINENO" 5
+	as_fn_error $? "bad value ${withval} for --with-int (use gmp, imath or imath-32)" "$LINENO" 5
 esac
 
 
@@ -17421,7 +17424,7 @@ fi
 
 
 	;;
-imath)
+imath|imath-32)
 
 
 $as_echo "#define USE_IMATH_FOR_MP /**/" >>confdefs.h
@@ -17463,7 +17466,7 @@ fi
 	;;
 esac
 
- if test x$with_int = ximath; then
+ if test x$with_int = ximath -o x$with_int = ximath-32; then
   IMATH_FOR_MP_TRUE=
   IMATH_FOR_MP_FALSE='#'
 else
@@ -17477,6 +17480,23 @@ fi
 else
   GMP_FOR_MP_TRUE='#'
   GMP_FOR_MP_FALSE=
+fi
+
+
+ if test "x$with_int" == "ximath-32"; then
+  SMALL_INT_OPT_TRUE=
+  SMALL_INT_OPT_FALSE='#'
+else
+  SMALL_INT_OPT_TRUE='#'
+  SMALL_INT_OPT_FALSE=
+fi
+
+if test "x$with_int" == "ximath-32"; then :
+
+
+$as_echo "#define USE_SMALL_INT_OPT /**/" >>confdefs.h
+
+
 fi
 
 ac_fn_c_check_decl "$LINENO" "ffs" "ac_cv_have_decl_ffs" "#include <strings.h>
@@ -17502,6 +17522,104 @@ cat >>confdefs.h <<_ACEOF
 #define HAVE_DECL___BUILTIN_FFS $ac_have_decl
 _ACEOF
 
+ac_fn_c_check_decl "$LINENO" "_BitScanForward" "ac_cv_have_decl__BitScanForward" "#include <intrin.h>
+"
+if test "x$ac_cv_have_decl__BitScanForward" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL__BITSCANFORWARD $ac_have_decl
+_ACEOF
+
+if test "x$ac_cv_have_decl_ffs" = xno -a \
+		"x$ac_cv_have_decl___builtin_ffs" = xno -a \
+		"x$ac_cv_have_decl__BitScanForward" = xno; then
+	as_fn_error $? "No ffs implementation found" "$LINENO" 5
+fi
+ac_fn_c_check_decl "$LINENO" "strcasecmp" "ac_cv_have_decl_strcasecmp" "#include <strings.h>
+"
+if test "x$ac_cv_have_decl_strcasecmp" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_STRCASECMP $ac_have_decl
+_ACEOF
+ac_fn_c_check_decl "$LINENO" "strncasecmp" "ac_cv_have_decl_strncasecmp" "#include <strings.h>
+"
+if test "x$ac_cv_have_decl_strncasecmp" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_STRNCASECMP $ac_have_decl
+_ACEOF
+
+ac_fn_c_check_decl "$LINENO" "_stricmp" "ac_cv_have_decl__stricmp" "#include <string.h>
+"
+if test "x$ac_cv_have_decl__stricmp" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL__STRICMP $ac_have_decl
+_ACEOF
+ac_fn_c_check_decl "$LINENO" "_strnicmp" "ac_cv_have_decl__strnicmp" "#include <string.h>
+"
+if test "x$ac_cv_have_decl__strnicmp" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL__STRNICMP $ac_have_decl
+_ACEOF
+
+if test "x$ac_cv_have_decl_strcasecmp" = xno -a \
+		"x$ac_cv_have_decl__stricmp" = xno; then
+	as_fn_error $? "No strcasecmp implementation found" "$LINENO" 5
+fi
+if test "x$ac_cv_have_decl_strncasecmp" = xno -a \
+		"x$ac_cv_have_decl__strnicmp" = xno; then
+	as_fn_error $? "No strncasecmp implementation found" "$LINENO" 5
+fi
+ac_fn_c_check_decl "$LINENO" "snprintf" "ac_cv_have_decl_snprintf" "#include <stdio.h>
+"
+if test "x$ac_cv_have_decl_snprintf" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_SNPRINTF $ac_have_decl
+_ACEOF
+ac_fn_c_check_decl "$LINENO" "_snprintf" "ac_cv_have_decl__snprintf" "#include <stdio.h>
+"
+if test "x$ac_cv_have_decl__snprintf" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL__SNPRINTF $ac_have_decl
+_ACEOF
+
+if test "x$ac_cv_have_decl_snprintf" = xno -a \
+		"x$ac_cv_have_decl__snprintf" = xno; then
+	as_fn_error $? "No snprintf implementation found" "$LINENO" 5
+fi
 
 
 
@@ -18533,6 +18651,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${GMP_FOR_MP_TRUE}" && test -z "${GMP_FOR_MP_FALSE}"; then
   as_fn_error $? "conditional \"GMP_FOR_MP\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${SMALL_INT_OPT_TRUE}" && test -z "${SMALL_INT_OPT_FALSE}"; then
+  as_fn_error $? "conditional \"SMALL_INT_OPT\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_CLANG_TRUE}" && test -z "${HAVE_CLANG_FALSE}"; then
