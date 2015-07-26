@@ -58,7 +58,7 @@ struct verify_point_bound {
 	isl_pw_qpolynomial_fold *bound;
 };
 
-static int verify_point(__isl_take isl_point *pnt, void *user)
+static isl_stat verify_point(__isl_take isl_point *pnt, void *user)
 {
 	int i;
 	unsigned nvar;
@@ -175,7 +175,7 @@ error:
 	if (vpb->options->continue_on_error)
 		ok = 1;
 
-	return (vpb->n >= 1 && ok) ? 0 : -1;
+	return (vpb->n >= 1 && ok) ? isl_stat_ok : isl_stat_error;
 }
 
 static int check_solution(__isl_take isl_pw_qpolynomial_fold *pwf,
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
 	isl_ctx *ctx;
 	isl_pw_qpolynomial_fold *copy;
 	isl_pw_qpolynomial_fold *pwf;
-	struct isl_stream *s;
+	isl_stream *s;
 	struct isl_obj obj;
 	struct bound_options *options;
 	int exact;

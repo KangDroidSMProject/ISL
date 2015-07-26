@@ -195,9 +195,10 @@ const char *FN(PW,get_dim_name)(__isl_keep PW *pw, enum isl_dim_type type,
 	return pw ? isl_space_get_dim_name(pw->dim, type, pos) : NULL;
 }
 
-int FN(PW,has_dim_id)(__isl_keep PW *pw, enum isl_dim_type type, unsigned pos)
+isl_bool FN(PW,has_dim_id)(__isl_keep PW *pw, enum isl_dim_type type,
+	unsigned pos)
 {
-	return pw ? isl_space_has_dim_id(pw->dim, type, pos) : -1;
+	return pw ? isl_space_has_dim_id(pw->dim, type, pos) : isl_bool_error;
 }
 
 __isl_give isl_id *FN(PW,get_dim_id)(__isl_keep PW *pw, enum isl_dim_type type,
@@ -206,9 +207,9 @@ __isl_give isl_id *FN(PW,get_dim_id)(__isl_keep PW *pw, enum isl_dim_type type,
 	return pw ? isl_space_get_dim_id(pw->dim, type, pos) : NULL;
 }
 
-int FN(PW,has_tuple_name)(__isl_keep PW *pw, enum isl_dim_type type)
+isl_bool FN(PW,has_tuple_name)(__isl_keep PW *pw, enum isl_dim_type type)
 {
-	return pw ? isl_space_has_tuple_name(pw->dim, type) : -1;
+	return pw ? isl_space_has_tuple_name(pw->dim, type) : isl_bool_error;
 }
 
 const char *FN(PW,get_tuple_name)(__isl_keep PW *pw, enum isl_dim_type type)
@@ -216,9 +217,9 @@ const char *FN(PW,get_tuple_name)(__isl_keep PW *pw, enum isl_dim_type type)
 	return pw ? isl_space_get_tuple_name(pw->dim, type) : NULL;
 }
 
-int FN(PW,has_tuple_id)(__isl_keep PW *pw, enum isl_dim_type type)
+isl_bool FN(PW,has_tuple_id)(__isl_keep PW *pw, enum isl_dim_type type)
 {
-	return pw ? isl_space_has_tuple_id(pw->dim, type) : -1;
+	return pw ? isl_space_has_tuple_id(pw->dim, type) : isl_bool_error;
 }
 
 __isl_give isl_id *FN(PW,get_tuple_id)(__isl_keep PW *pw, enum isl_dim_type type)
@@ -226,10 +227,10 @@ __isl_give isl_id *FN(PW,get_tuple_id)(__isl_keep PW *pw, enum isl_dim_type type
 	return pw ? isl_space_get_tuple_id(pw->dim, type) : NULL;
 }
 
-int FN(PW,IS_ZERO)(__isl_keep PW *pw)
+isl_bool FN(PW,IS_ZERO)(__isl_keep PW *pw)
 {
 	if (!pw)
-		return -1;
+		return isl_bool_error;
 
 	return pw->n == 0;
 }
@@ -644,7 +645,9 @@ __isl_give PW *FN(PW,neg)(__isl_take PW *pw)
 
 	return pw;
 }
+#endif
 
+#ifndef NO_SUB
 __isl_give PW *FN(PW,sub)(__isl_take PW *pw1, __isl_take PW *pw2)
 {
 	return FN(PW,add)(pw1, FN(PW,neg)(pw2));
@@ -802,9 +805,9 @@ __isl_give PW *FN(PW,fix_si)(__isl_take PW *pw, enum isl_dim_type type,
 
 /* Restrict the domain of "pw" by combining each cell
  * with "set" through a call to "fn", where "fn" may be
- * isl_set_intersect or isl_set_intersect_params.
+ * isl_set_intersect, isl_set_intersect_params or isl_set_subtract.
  */
-static __isl_give PW *FN(PW,intersect_aligned)(__isl_take PW *pw,
+static __isl_give PW *FN(PW,restrict_domain_aligned)(__isl_take PW *pw,
 	__isl_take isl_set *set,
 	__isl_give isl_set *(*fn)(__isl_take isl_set *set1,
 				    __isl_take isl_set *set2))
@@ -840,7 +843,7 @@ error:
 static __isl_give PW *FN(PW,intersect_domain_aligned)(__isl_take PW *pw,
 	__isl_take isl_set *set)
 {
-	return FN(PW,intersect_aligned)(pw, set, &isl_set_intersect);
+	return FN(PW,restrict_domain_aligned)(pw, set, &isl_set_intersect);
 }
 
 __isl_give PW *FN(PW,intersect_domain)(__isl_take PW *pw,
@@ -853,7 +856,8 @@ __isl_give PW *FN(PW,intersect_domain)(__isl_take PW *pw,
 static __isl_give PW *FN(PW,intersect_params_aligned)(__isl_take PW *pw,
 	__isl_take isl_set *set)
 {
-	return FN(PW,intersect_aligned)(pw, set, &isl_set_intersect_params);
+	return FN(PW,restrict_domain_aligned)(pw, set,
+					&isl_set_intersect_params);
 }
 
 /* Intersect the domain of "pw" with the parameter domain "context".
@@ -863,6 +867,24 @@ __isl_give PW *FN(PW,intersect_params)(__isl_take PW *pw,
 {
 	return FN(PW,align_params_pw_set_and)(pw, context,
 					&FN(PW,intersect_params_aligned));
+}
+
+/* Subtract "domain' from the domain of "pw", assuming their
+ * parameters have been aligned.
+ */
+static __isl_give PW *FN(PW,subtract_domain_aligned)(__isl_take PW *pw,
+	__isl_take isl_set *domain)
+{
+	return FN(PW,restrict_domain_aligned)(pw, domain, &isl_set_subtract);
+}
+
+/* Subtract "domain' from the domain of "pw".
+ */
+__isl_give PW *FN(PW,subtract_domain)(__isl_take PW *pw,
+	__isl_take isl_set *domain)
+{
+	return FN(PW,align_params_pw_set_and)(pw, domain,
+					&FN(PW,subtract_domain_aligned));
 }
 
 /* Compute the gist of "pw" with respect to the domain constraints
@@ -1065,21 +1087,21 @@ isl_ctx *FN(PW,get_ctx)(__isl_keep PW *pw)
 }
 
 #ifndef NO_INVOLVES_DIMS
-int FN(PW,involves_dims)(__isl_keep PW *pw, enum isl_dim_type type,
+isl_bool FN(PW,involves_dims)(__isl_keep PW *pw, enum isl_dim_type type,
 	unsigned first, unsigned n)
 {
 	int i;
 	enum isl_dim_type set_type;
 
 	if (!pw)
-		return -1;
+		return isl_bool_error;
 	if (pw->n == 0 || n == 0)
-		return 0;
+		return isl_bool_false;
 
 	set_type = type == isl_dim_in ? isl_dim_set : type;
 
 	for (i = 0; i < pw->n; ++i) {
-		int involves = FN(EL,involves_dims)(pw->p[i].FIELD,
+		isl_bool involves = FN(EL,involves_dims)(pw->p[i].FIELD,
 							type, first, n);
 		if (involves < 0 || involves)
 			return involves;
@@ -1088,7 +1110,7 @@ int FN(PW,involves_dims)(__isl_keep PW *pw, enum isl_dim_type type,
 		if (involves < 0 || involves)
 			return involves;
 	}
-	return 0;
+	return isl_bool_false;
 }
 #endif
 
@@ -1393,6 +1415,18 @@ __isl_give isl_space *FN(PW,get_domain_space)(__isl_keep PW *pw)
 	return pw ? isl_space_domain(isl_space_copy(pw->dim)) : NULL;
 }
 
+/* Return the position of the dimension of the given type and name
+ * in "pw".
+ * Return -1 if no such dimension can be found.
+ */
+int FN(PW,find_dim_by_name)(__isl_keep PW *pw,
+	enum isl_dim_type type, const char *name)
+{
+	if (!pw)
+		return -1;
+	return isl_space_find_dim_by_name(pw->dim, type, name);
+}
+
 #ifndef NO_RESET_DIM
 /* Reset the space of "pw".  Since we don't know if the elements
  * represent the spaces themselves or their domains, we pass along
@@ -1502,6 +1536,19 @@ error:
 }
 #endif
 
+/* Reset the user pointer on all identifiers of parameters and tuples
+ * of the space of "pw".
+ */
+__isl_give PW *FN(PW,reset_user)(__isl_take PW *pw)
+{
+	isl_space *space;
+
+	space = FN(PW,get_space)(pw);
+	space = isl_space_reset_user(space);
+
+	return FN(PW,reset_space)(pw, space);
+}
+
 int FN(PW,has_equal_space)(__isl_keep PW *pw1, __isl_keep PW *pw2)
 {
 	if (!pw1 || !pw2)
@@ -1557,21 +1604,21 @@ int FN(PW,n_piece)(__isl_keep PW *pw)
 	return pw ? pw->n : 0;
 }
 
-int FN(PW,foreach_piece)(__isl_keep PW *pw,
-	int (*fn)(__isl_take isl_set *set, __isl_take EL *el, void *user),
+isl_stat FN(PW,foreach_piece)(__isl_keep PW *pw,
+	isl_stat (*fn)(__isl_take isl_set *set, __isl_take EL *el, void *user),
 	void *user)
 {
 	int i;
 
 	if (!pw)
-		return -1;
+		return isl_stat_error;
 
 	for (i = 0; i < pw->n; ++i)
 		if (fn(isl_set_copy(pw->p[i].set),
 				FN(EL,copy)(pw->p[i].FIELD), user) < 0)
-			return -1;
+			return isl_stat_error;
 
-	return 0;
+	return isl_stat_ok;
 }
 
 #ifndef NO_LIFT
@@ -1589,9 +1636,10 @@ static int any_divs(__isl_keep isl_set *set)
 	return 0;
 }
 
-static int foreach_lifted_subset(__isl_take isl_set *set, __isl_take EL *el,
-	int (*fn)(__isl_take isl_set *set, __isl_take EL *el,
-		    void *user), void *user)
+static isl_stat foreach_lifted_subset(__isl_take isl_set *set,
+	__isl_take EL *el,
+	isl_stat (*fn)(__isl_take isl_set *set, __isl_take EL *el,
+		void *user), void *user)
 {
 	int i;
 
@@ -1615,21 +1663,21 @@ static int foreach_lifted_subset(__isl_take isl_set *set, __isl_take EL *el,
 	isl_set_free(set);
 	FN(EL,free)(el);
 
-	return 0;
+	return isl_stat_ok;
 error:
 	isl_set_free(set);
 	FN(EL,free)(el);
-	return -1;
+	return isl_stat_error;
 }
 
-int FN(PW,foreach_lifted_piece)(__isl_keep PW *pw,
-	int (*fn)(__isl_take isl_set *set, __isl_take EL *el,
+isl_stat FN(PW,foreach_lifted_piece)(__isl_keep PW *pw,
+	isl_stat (*fn)(__isl_take isl_set *set, __isl_take EL *el,
 		    void *user), void *user)
 {
 	int i;
 
 	if (!pw)
-		return -1;
+		return isl_stat_error;
 
 	for (i = 0; i < pw->n; ++i) {
 		isl_set *set;
@@ -1639,14 +1687,14 @@ int FN(PW,foreach_lifted_piece)(__isl_keep PW *pw,
 		el = FN(EL,copy)(pw->p[i].FIELD);
 		if (!any_divs(set)) {
 			if (fn(set, el, user) < 0)
-				return -1;
+				return isl_stat_error;
 			continue;
 		}
 		if (foreach_lifted_subset(set, el, fn, user) < 0)
-			return -1;
+			return isl_stat_error;
 	}
 
-	return 0;
+	return isl_stat_ok;
 }
 #endif
 
@@ -1783,6 +1831,54 @@ error:
 	return NULL;
 }
 
+/* Divide the pieces of "pw" by "v" and return the result.
+ */
+__isl_give PW *FN(PW,scale_down_val)(__isl_take PW *pw, __isl_take isl_val *v)
+{
+	int i;
+
+	if (!pw || !v)
+		goto error;
+
+	if (isl_val_is_one(v)) {
+		isl_val_free(v);
+		return pw;
+	}
+
+	if (!isl_val_is_rat(v))
+		isl_die(isl_val_get_ctx(v), isl_error_invalid,
+			"expecting rational factor", goto error);
+	if (isl_val_is_zero(v))
+		isl_die(isl_val_get_ctx(v), isl_error_invalid,
+			"cannot scale down by zero", goto error);
+
+	if (pw->n == 0) {
+		isl_val_free(v);
+		return pw;
+	}
+	pw = FN(PW,cow)(pw);
+	if (!pw)
+		goto error;
+
+#ifdef HAS_TYPE
+	if (isl_val_is_neg(v))
+		pw->type = isl_fold_type_negate(pw->type);
+#endif
+	for (i = 0; i < pw->n; ++i) {
+		pw->p[i].FIELD = FN(EL,scale_down_val)(pw->p[i].FIELD,
+						    isl_val_copy(v));
+		if (!pw->p[i].FIELD)
+			goto error;
+	}
+
+	isl_val_free(v);
+	return pw;
+error:
+	isl_val_free(v);
+	FN(PW,free)(pw);
+	return NULL;
+}
+
 __isl_give PW *FN(PW,scale)(__isl_take PW *pw, isl_int v)
 {
 	return FN(PW,mul_isl_int)(pw, v);
@@ -1840,18 +1936,18 @@ __isl_give PW *FN(PW,normalize)(__isl_take PW *pw)
  * That is, do they have obviously identical cells and obviously identical
  * elements on each cell?
  */
-int FN(PW,plain_is_equal)(__isl_keep PW *pw1, __isl_keep PW *pw2)
+isl_bool FN(PW,plain_is_equal)(__isl_keep PW *pw1, __isl_keep PW *pw2)
 {
 	int i;
-	int equal;
+	isl_bool equal;
 
 	if (!pw1 || !pw2)
-		return -1;
+		return isl_bool_error;
 
 	if (pw1 == pw2)
-		return 1;
+		return isl_bool_true;
 	if (!isl_space_is_equal(pw1->dim, pw2->dim))
-		return 0;
+		return isl_bool_false;
 
 	pw1 = FN(PW,copy)(pw1);
 	pw2 = FN(PW,copy)(pw2);
@@ -1878,7 +1974,7 @@ int FN(PW,plain_is_equal)(__isl_keep PW *pw1, __isl_keep PW *pw2)
 error:
 	FN(PW,free)(pw1);
 	FN(PW,free)(pw2);
-	return -1;
+	return isl_bool_error;
 }
 
 #ifndef NO_PULLBACK

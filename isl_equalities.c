@@ -514,7 +514,7 @@ __isl_give isl_mat *isl_mat_variable_compression(__isl_take isl_mat *B,
 				isl_mat_free(U);
 				if (T2) {
 					isl_mat_free(*T2);
-					*T2 = NULL;
+					*T2 = isl_mat_alloc(ctx, 0, 1 + dim);
 				}
 				return isl_mat_alloc(ctx, 1 + dim, 0);
 			}
@@ -638,10 +638,10 @@ int isl_basic_set_dim_residue_class(struct isl_basic_set *bset,
 		return 0;
 	}
 
-	ctx = bset->ctx;
+	ctx = isl_basic_set_get_ctx(bset);
 	total = isl_basic_set_total_dim(bset);
 	nparam = isl_basic_set_n_param(bset);
-	H = isl_mat_sub_alloc6(bset->ctx, bset->eq, 0, bset->n_eq, 1, total);
+	H = isl_mat_sub_alloc6(ctx, bset->eq, 0, bset->n_eq, 1, total);
 	H = isl_mat_left_hermite(H, 0, &U, NULL);
 	if (!H)
 		return -1;
@@ -657,11 +657,11 @@ int isl_basic_set_dim_residue_class(struct isl_basic_set *bset,
 		return 0;
 	}
 
-	C = isl_mat_alloc(bset->ctx, 1+bset->n_eq, 1);
+	C = isl_mat_alloc(ctx, 1 + bset->n_eq, 1);
 	if (!C)
 		goto error;
 	isl_int_set_si(C->row[0][0], 1);
-	isl_mat_sub_neg(C->ctx, C->row+1, bset->eq, bset->n_eq, 0, 0, 1);
+	isl_mat_sub_neg(ctx, C->row + 1, bset->eq, bset->n_eq, 0, 0, 1);
 	H1 = isl_mat_sub_alloc(H, 0, H->n_row, 0, H->n_row);
 	H1 = isl_mat_lin_to_aff(H1);
 	C = isl_mat_inverse_product(H1, C);
@@ -758,13 +758,13 @@ error:
  * If i_dim does not belong to such a residue class, then *modulo
  * is set to 1 and *residue is set to 0.
  */
-int isl_set_dim_residue_class_val(__isl_keep isl_set *set,
+isl_stat isl_set_dim_residue_class_val(__isl_keep isl_set *set,
 	int pos, __isl_give isl_val **modulo, __isl_give isl_val **residue)
 {
 	*modulo = NULL;
 	*residue = NULL;
 	if (!set)
-		return -1;
+		return isl_stat_error;
 	*modulo = isl_val_alloc(isl_set_get_ctx(set));
 	*residue = isl_val_alloc(isl_set_get_ctx(set));
 	if (!*modulo || !*residue)
@@ -774,9 +774,9 @@ int isl_set_dim_residue_class_val(__isl_keep isl_set *set,
 		goto error;
 	isl_int_set_si((*modulo)->d, 1);
 	isl_int_set_si((*residue)->d, 1);
-	return 0;
+	return isl_stat_ok;
 error:
 	isl_val_free(*modulo);
 	isl_val_free(*residue);
-	return -1;
+	return isl_stat_error;
 }

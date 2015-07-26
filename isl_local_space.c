@@ -119,32 +119,41 @@ __isl_null isl_local_space *isl_local_space_free(
 	return NULL;
 }
 
+/* Is the local space that of a parameter domain?
+ */
+isl_bool isl_local_space_is_params(__isl_keep isl_local_space *ls)
+{
+	if (!ls)
+		return isl_bool_error;
+	return isl_space_is_params(ls->dim);
+}
+
 /* Is the local space that of a set?
  */
-int isl_local_space_is_set(__isl_keep isl_local_space *ls)
+isl_bool isl_local_space_is_set(__isl_keep isl_local_space *ls)
 {
-	return ls ? isl_space_is_set(ls->dim) : -1;
+	return ls ? isl_space_is_set(ls->dim) : isl_bool_error;
 }
 
 /* Return true if the two local spaces are identical, with identical
  * expressions for the integer divisions.
  */
-int isl_local_space_is_equal(__isl_keep isl_local_space *ls1,
+isl_bool isl_local_space_is_equal(__isl_keep isl_local_space *ls1,
 	__isl_keep isl_local_space *ls2)
 {
-	int equal;
+	isl_bool equal;
 
 	if (!ls1 || !ls2)
-		return -1;
+		return isl_bool_error;
 
 	equal = isl_space_is_equal(ls1->dim, ls2->dim);
 	if (equal < 0 || !equal)
 		return equal;
 
 	if (!isl_local_space_divs_known(ls1))
-		return 0;
+		return isl_bool_false;
 	if (!isl_local_space_divs_known(ls2))
-		return 0;
+		return isl_bool_false;
 
 	return isl_mat_is_equal(ls1->div, ls2->div);
 }
@@ -234,12 +243,26 @@ unsigned isl_local_space_offset(__isl_keep isl_local_space *ls,
 	}
 }
 
+/* Return the position of the dimension of the given type and name
+ * in "ls".
+ * Return -1 if no such dimension can be found.
+ */
+int isl_local_space_find_dim_by_name(__isl_keep isl_local_space *ls,
+	enum isl_dim_type type, const char *name)
+{
+	if (!ls)
+		return -1;
+	if (type == isl_dim_div)
+		return -1;
+	return isl_space_find_dim_by_name(ls->dim, type, name);
+}
+
 /* Does the given dimension have a name?
  */
-int isl_local_space_has_dim_name(__isl_keep isl_local_space *ls,
+isl_bool isl_local_space_has_dim_name(__isl_keep isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos)
 {
-	return ls ? isl_space_has_dim_name(ls->dim, type, pos) : -1;
+	return ls ? isl_space_has_dim_name(ls->dim, type, pos) : isl_bool_error;
 }
 
 const char *isl_local_space_get_dim_name(__isl_keep isl_local_space *ls,
@@ -248,10 +271,10 @@ const char *isl_local_space_get_dim_name(__isl_keep isl_local_space *ls,
 	return ls ? isl_space_get_dim_name(ls->dim, type, pos) : NULL;
 }
 
-int isl_local_space_has_dim_id(__isl_keep isl_local_space *ls,
+isl_bool isl_local_space_has_dim_id(__isl_keep isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos)
 {
-	return ls ? isl_space_has_dim_id(ls->dim, type, pos) : -1;
+	return ls ? isl_space_has_dim_id(ls->dim, type, pos) : isl_bool_error;
 }
 
 __isl_give isl_id *isl_local_space_get_dim_id(__isl_keep isl_local_space *ls,
@@ -1333,6 +1356,23 @@ __isl_give isl_local_space *isl_local_space_flatten_range(
 		return NULL;
 
 	ls->dim = isl_space_flatten_range(ls->dim);
+	if (!ls->dim)
+		return isl_local_space_free(ls);
+
+	return ls;
+}
+
+/* Given the local space "ls" of a map, return the local space of a set
+ * that lives in a space that wraps the space of "ls" and that has
+ * the same divs.
+ */
+__isl_give isl_local_space *isl_local_space_wrap(__isl_take isl_local_space *ls)
+{
+	ls = isl_local_space_cow(ls);
+	if (!ls)
+		return NULL;
+
+	ls->dim = isl_space_wrap(ls->dim);
 	if (!ls->dim)
 		return isl_local_space_free(ls);
 

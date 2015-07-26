@@ -11,8 +11,8 @@ lib_LTLIBRARIES = libisl.la
 noinst_PROGRAMS = isl_test isl_polyhedron_sample isl_pip \
 	isl_polyhedron_minimize isl_polytope_scan \
 	isl_polyhedron_detect_equalities isl_cat \
-	isl_closure isl_bound isl_codegen
-TESTS = isl_test codegen_test.sh pip_test.sh bound_test.sh
+	isl_closure isl_bound isl_codegen isl_test_int
+TESTS = isl_test codegen_test.sh pip_test.sh bound_test.sh isl_test_int
 
 if IMATH_FOR_MP
 
@@ -21,7 +21,6 @@ MP_SRC = \
 	isl_imath.c \
 	isl_imath.h \
 	isl_int_imath.h \
-	isl_val_imath.c \
 	imath_wrap/gmp_compat.h \
 	imath_wrap/imath.h \
 	imath_wrap/imrat.h \
@@ -29,6 +28,17 @@ MP_SRC = \
 	imath_wrap/gmp_compat.c \
 	imath_wrap/imath.c \
 	imath_wrap/imrat.c
+
+noinst_PROGRAMS += isl_test_imath
+TESTS += isl_test_imath
+
+if SMALL_INT_OPT
+MP_SRC += isl_int_sioimath.h \
+	isl_int_sioimath.c \
+	isl_val_sioimath.c
+else
+MP_SRC += isl_val_imath.c
+endif
 
 DEPRECATED_SRC =
 MP_INCLUDE_H =
@@ -85,7 +95,6 @@ libisl_la_SOURCES = \
 	isl_ctx.c \
 	isl_ctx_private.h \
 	isl_deprecated.c \
-	isl_dim.c \
 	isl_dim_map.h \
 	isl_dim_map.c \
 	isl_equalities.c \
@@ -93,9 +102,11 @@ libisl_la_SOURCES = \
 	isl_factorization.c \
 	isl_factorization.h \
 	isl_farkas.c \
+	isl_ffs.c \
 	isl_flow.c \
 	isl_fold.c \
 	isl_hash.c \
+	isl_hash_private.h \
 	isl_id_to_ast_expr.c \
 	isl_id_to_pw_aff.c \
 	isl_ilp.c \
@@ -107,6 +118,7 @@ libisl_la_SOURCES = \
 	isl_lp.c \
 	isl_lp_private.h \
 	isl_map.c \
+	isl_map_list.c \
 	isl_map_simplify.c \
 	isl_map_subtract.c \
 	isl_map_private.h \
@@ -137,6 +149,13 @@ libisl_la_SOURCES = \
 	isl_scan.c \
 	isl_scan.h \
 	isl_schedule.c \
+	isl_schedule_band.c \
+	isl_schedule_band.h \
+	isl_schedule_node.c \
+	isl_schedule_node_private.h \
+	isl_schedule_read.c \
+	isl_schedule_tree.c \
+	isl_schedule_tree.h \
 	isl_schedule_private.h \
 	isl_scheduler.c \
 	isl_set_list.c \
@@ -162,13 +181,22 @@ libisl_la_SOURCES = \
 	isl_vec.c \
 	isl_version.c \
 	isl_vertices_private.h \
-	isl_vertices.c
+	isl_vertices.c \
+	isl_yaml.h
 libisl_la_LIBADD = @MP_LIBS@
 libisl_la_LDFLAGS = -version-info @versioninfo@ \
 	@MP_LDFLAGS@
 
 isl_test_LDFLAGS = @MP_LDFLAGS@
 isl_test_LDADD = libisl.la @MP_LIBS@
+
+isl_test_int_LDFLAGS = @MP_LDFLAGS@
+isl_test_int_LDADD = libisl.la @MP_LIBS@
+
+if IMATH_FOR_MP
+isl_test_imath_LDFLAGS = @MP_LDFLAGS@
+isl_test_imath_LDADD = libisl.la @MP_LIBS@
+endif
 
 isl_polyhedron_sample_LDADD = libisl.la
 isl_polyhedron_sample_SOURCES = \
@@ -223,7 +251,6 @@ pkginclude_HEADERS = \
 	include/isl/band.h \
 	include/isl/constraint.h \
 	include/isl/ctx.h \
-	include/isl/dim.h \
 	include/isl/flow.h \
 	include/isl/id.h \
 	include/isl/id_to_ast_expr.h \
@@ -246,6 +273,8 @@ pkginclude_HEADERS = \
 	include/isl/polynomial_type.h \
 	include/isl/printer.h \
 	include/isl/schedule.h \
+	include/isl/schedule_node.h \
+	include/isl/schedule_type.h \
 	include/isl/set.h \
 	include/isl/set_type.h \
 	include/isl/space.h \
@@ -282,13 +311,26 @@ EXTRA_DIST = \
 	isl_list_templ.c \
 	isl_list_templ.h \
 	isl_map_lexopt_templ.c \
+	isl_multi_macro.h \
 	isl_multi_templ.c \
 	isl_multi_templ.h \
+	isl_multi_apply_templ.c \
+	isl_multi_apply_set.c \
+	isl_multi_apply_union_set.c \
+	isl_multi_floor.c \
+	isl_multi_gist.c \
+	isl_multi_intersect.c \
 	print_templ.c \
 	isl_power_templ.c \
 	isl_pw_templ.c \
+	isl_union_macro.h \
 	isl_union_templ.c \
+	isl_union_single.c \
+	isl_union_multi.c \
+	isl_union_eval.c \
+	isl_union_neg.c \
 	isl.py \
+	doc/CodingStyle \
 	doc/SubmittingPatches \
 	doc/chicago.bst \
 	doc/chicago.sty \

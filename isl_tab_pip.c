@@ -564,9 +564,8 @@ static void sol_map_free_wrap(struct isl_sol *sol)
 static void sol_map_add_empty(struct isl_sol_map *sol,
 	struct isl_basic_set *bset)
 {
-	if (!bset)
+	if (!bset || !sol->empty)
 		goto error;
-	isl_assert(bset->ctx, sol->empty, goto error);
 
 	sol->empty = isl_set_grow(sol->empty, 1);
 	bset = isl_basic_set_simplify(bset);
@@ -2790,7 +2789,7 @@ static struct isl_vec *gbr_get_sample(struct isl_context_gbr *cgbr)
 
 		sample = isl_tab_sample(cgbr->tab);
 
-		if (isl_tab_rollback(cgbr->tab, snap) < 0) {
+		if (!sample || isl_tab_rollback(cgbr->tab, snap) < 0) {
 			isl_vec_free(sample);
 			return NULL;
 		}
@@ -3137,10 +3136,7 @@ static int context_gbr_detect_equalities(struct isl_context *context,
 	struct isl_tab *tab)
 {
 	struct isl_context_gbr *cgbr = (struct isl_context_gbr *)context;
-	struct isl_ctx *ctx;
 	unsigned n_ineq;
-
-	ctx = cgbr->tab->mat->ctx;
 
 	if (!cgbr->cone) {
 		struct isl_basic_set *bset = isl_tab_peek_bset(cgbr->tab);
@@ -3269,10 +3265,8 @@ static void context_gbr_restore(struct isl_context *context, void *save)
 	struct isl_gbr_tab_undo *snap = (struct isl_gbr_tab_undo *)save;
 	if (!snap)
 		goto error;
-	if (isl_tab_rollback(cgbr->tab, snap->tab_snap) < 0) {
-		isl_tab_free(cgbr->tab);
-		cgbr->tab = NULL;
-	}
+	if (isl_tab_rollback(cgbr->tab, snap->tab_snap) < 0)
+		goto error;
 
 	if (snap->shifted_snap) {
 		if (isl_tab_rollback(cgbr->shifted, snap->shifted_snap) < 0)
@@ -3833,7 +3827,6 @@ static void find_solutions(struct isl_sol *sol, struct isl_tab *tab)
 			sol_inc_level(sol);
 			find_in_pos(sol, tab, ineq->el);
 			tab->row_sign[split] = isl_tab_row_neg;
-			row = split;
 			isl_seq_neg(ineq->el, ineq->el, ineq->size);
 			isl_int_sub_ui(ineq->el[0], ineq->el[0], 1);
 			if (!sol->error)
@@ -4191,7 +4184,7 @@ static int parallel_constraints(__isl_keep isl_basic_map *bmap,
 	int *first, int *second)
 {
 	int i;
-	isl_ctx *ctx = isl_basic_map_get_ctx(bmap);
+	isl_ctx *ctx;
 	struct isl_hash_table *table = NULL;
 	struct isl_hash_table_entry *entry;
 	struct isl_constraint_equal_info info;
@@ -4295,13 +4288,11 @@ static __isl_give isl_set *set_minimum(__isl_take isl_space *dim,
 {
 	int i, k;
 	isl_basic_set *bset = NULL;
-	isl_ctx *ctx;
 	isl_set *set = NULL;
 
 	if (!dim || !var)
 		goto error;
 
-	ctx = isl_space_get_ctx(dim);
 	set = isl_set_alloc_space(isl_space_copy(dim),
 				var->n_row, ISL_SET_DISJOINT);
 
@@ -4628,7 +4619,7 @@ static union isl_lex_res basic_map_partial_lexopt_symm(
 		if (isl_basic_map_drop_inequality(bmap, list[i]) < 0)
 			goto error;
 
-	bmap = isl_basic_map_add(bmap, isl_dim_in, 1);
+	bmap = isl_basic_map_add_dims(bmap, isl_dim_in, 1);
 	bmap = isl_basic_map_extend_constraints(bmap, 0, 1);
 	k = isl_basic_map_alloc_inequality(bmap);
 	if (k < 0)
@@ -5259,9 +5250,8 @@ static void sol_pma_free(struct isl_sol_pma *sol_pma)
 static void sol_pma_add_empty(struct isl_sol_pma *sol,
 	__isl_take isl_basic_set *bset)
 {
-	if (!bset)
+	if (!bset || !sol->empty)
 		goto error;
-	isl_assert(bset->ctx, sol->empty, goto error);
 
 	sol->empty = isl_set_grow(sol->empty, 1);
 	bset = isl_basic_set_simplify(bset);
@@ -5447,7 +5437,6 @@ static __isl_give isl_pw_aff *set_minimum_pa(__isl_take isl_space *space,
 	int i;
 	isl_aff *aff = NULL;
 	isl_basic_set *bset = NULL;
-	isl_ctx *ctx;
 	isl_pw_aff *paff = NULL;
 	isl_space *pw_space;
 	isl_local_space *ls = NULL;
@@ -5455,7 +5444,6 @@ static __isl_give isl_pw_aff *set_minimum_pa(__isl_take isl_space *space,
 	if (!space || !var)
 		goto error;
 
-	ctx = isl_space_get_ctx(space);
 	ls = isl_local_space_from_space(isl_space_copy(space));
 	pw_space = isl_space_copy(space);
 	pw_space = isl_space_from_domain(pw_space);
