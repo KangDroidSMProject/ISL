@@ -85,8 +85,17 @@ noinst_PROGRAMS = isl_test$(EXEEXT) isl_polyhedron_sample$(EXEEXT) \
 	isl_pip$(EXEEXT) isl_polyhedron_minimize$(EXEEXT) \
 	isl_polytope_scan$(EXEEXT) \
 	isl_polyhedron_detect_equalities$(EXEEXT) isl_cat$(EXEEXT) \
-	isl_closure$(EXEEXT) isl_bound$(EXEEXT) isl_codegen$(EXEEXT)
-TESTS = isl_test$(EXEEXT) codegen_test.sh pip_test.sh bound_test.sh
+	isl_closure$(EXEEXT) isl_bound$(EXEEXT) isl_codegen$(EXEEXT) \
+	isl_test_int$(EXEEXT) $(am__EXEEXT_1)
+TESTS = isl_test$(EXEEXT) codegen_test.sh pip_test.sh bound_test.sh \
+	isl_test_int$(EXEEXT) $(am__EXEEXT_1)
+@IMATH_FOR_MP_TRUE@am__append_1 = isl_test_imath
+@IMATH_FOR_MP_TRUE@am__append_2 = isl_test_imath
+@IMATH_FOR_MP_TRUE@@SMALL_INT_OPT_TRUE@am__append_3 = isl_int_sioimath.h \
+@IMATH_FOR_MP_TRUE@@SMALL_INT_OPT_TRUE@	isl_int_sioimath.c \
+@IMATH_FOR_MP_TRUE@@SMALL_INT_OPT_TRUE@	isl_val_sioimath.c
+
+@IMATH_FOR_MP_TRUE@@SMALL_INT_OPT_FALSE@am__append_4 = isl_val_imath.c
 subdir = .
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/configure $(am__configure_deps) \
@@ -155,10 +164,11 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 libisl_la_DEPENDENCIES =
 am__libisl_la_SOURCES_DIST = mp_get_memory_functions.c isl_int_gmp.h \
 	isl_gmp.c isl_val_gmp.c isl_hide_deprecated.h isl_imath.c \
-	isl_imath.h isl_int_imath.h isl_val_imath.c \
-	imath_wrap/gmp_compat.h imath_wrap/imath.h imath_wrap/imrat.h \
-	imath_wrap/wrap.h imath_wrap/gmp_compat.c imath_wrap/imath.c \
-	imath_wrap/imrat.c isl_ast_int.c isl_aff.c isl_aff_private.h \
+	isl_imath.h isl_int_imath.h imath_wrap/gmp_compat.h \
+	imath_wrap/imath.h imath_wrap/imrat.h imath_wrap/wrap.h \
+	imath_wrap/gmp_compat.c imath_wrap/imath.c imath_wrap/imrat.c \
+	isl_int_sioimath.h isl_int_sioimath.c isl_val_sioimath.c \
+	isl_val_imath.c isl_ast_int.c isl_aff.c isl_aff_private.h \
 	isl_affine_hull.c isl_arg.c isl_ast.c isl_ast_private.h \
 	isl_ast_build.c isl_ast_build_private.h isl_ast_build_expr.c \
 	isl_ast_build_expr.h isl_ast_codegen.c isl_ast_graft.c \
@@ -167,13 +177,13 @@ am__libisl_la_SOURCES_DIST = mp_get_memory_functions.c isl_int_gmp.h \
 	isl_bernstein.h isl_blk.c isl_blk.h isl_bound.c isl_bound.h \
 	isl_coalesce.c isl_constraint.c isl_constraint_private.h \
 	isl_convex_hull.c isl_ctx.c isl_ctx_private.h isl_deprecated.c \
-	isl_dim.c isl_dim_map.h isl_dim_map.c isl_equalities.c \
-	isl_equalities.h isl_factorization.c isl_factorization.h \
-	isl_farkas.c isl_flow.c isl_fold.c isl_hash.c \
+	isl_dim_map.h isl_dim_map.c isl_equalities.c isl_equalities.h \
+	isl_factorization.c isl_factorization.h isl_farkas.c isl_ffs.c \
+	isl_flow.c isl_fold.c isl_hash.c isl_hash_private.h \
 	isl_id_to_ast_expr.c isl_id_to_pw_aff.c isl_ilp.c \
 	isl_ilp_private.h isl_input.c isl_int.h \
 	isl_local_space_private.h isl_local_space.c isl_lp.c \
-	isl_lp_private.h isl_map.c isl_map_simplify.c \
+	isl_lp_private.h isl_map.c isl_map_list.c isl_map_simplify.c \
 	isl_map_subtract.c isl_map_private.h isl_map_to_basic_set.c \
 	isl_mat.c isl_mat_private.h isl_morph.c isl_morph.h isl_id.c \
 	isl_id_private.h isl_obj.c isl_options.c isl_options_private.h \
@@ -182,43 +192,54 @@ am__libisl_la_SOURCES_DIST = mp_get_memory_functions.c isl_int_gmp.h \
 	isl_printer_private.h isl_printer.c print.c isl_range.c \
 	isl_range.h isl_reordering.c isl_reordering.h isl_sample.h \
 	isl_sample.c isl_scan.c isl_scan.h isl_schedule.c \
-	isl_schedule_private.h isl_scheduler.c isl_set_list.c \
-	isl_sort.c isl_sort.h isl_space.c isl_space_private.h \
-	isl_stream.c isl_stream_private.h isl_seq.c isl_seq.h \
-	isl_tab.c isl_tab.h isl_tab_pip.c isl_tarjan.c isl_tarjan.h \
+	isl_schedule_band.c isl_schedule_band.h isl_schedule_node.c \
+	isl_schedule_node_private.h isl_schedule_read.c \
+	isl_schedule_tree.c isl_schedule_tree.h isl_schedule_private.h \
+	isl_scheduler.c isl_set_list.c isl_sort.c isl_sort.h \
+	isl_space.c isl_space_private.h isl_stream.c \
+	isl_stream_private.h isl_seq.c isl_seq.h isl_tab.c isl_tab.h \
+	isl_tab_pip.c isl_tarjan.c isl_tarjan.h \
 	isl_transitive_closure.c isl_union_map.c \
 	isl_union_map_private.h isl_val.c isl_val_private.h \
 	isl_vec_private.h isl_vec.c isl_version.c \
-	isl_vertices_private.h isl_vertices.c
+	isl_vertices_private.h isl_vertices.c isl_yaml.h
 @GMP_FOR_MP_TRUE@@NEED_GET_MEMORY_FUNCTIONS_TRUE@am__objects_1 = mp_get_memory_functions.lo
 am__dirstamp = $(am__leading_dot)dirstamp
-@GMP_FOR_MP_FALSE@@IMATH_FOR_MP_TRUE@am__objects_2 = isl_imath.lo \
-@GMP_FOR_MP_FALSE@@IMATH_FOR_MP_TRUE@	isl_val_imath.lo \
+@IMATH_FOR_MP_TRUE@@SMALL_INT_OPT_TRUE@am__objects_2 =  \
+@IMATH_FOR_MP_TRUE@@SMALL_INT_OPT_TRUE@	isl_int_sioimath.lo \
+@IMATH_FOR_MP_TRUE@@SMALL_INT_OPT_TRUE@	isl_val_sioimath.lo
+@IMATH_FOR_MP_TRUE@@SMALL_INT_OPT_FALSE@am__objects_3 =  \
+@IMATH_FOR_MP_TRUE@@SMALL_INT_OPT_FALSE@	isl_val_imath.lo
+@GMP_FOR_MP_FALSE@@IMATH_FOR_MP_TRUE@am__objects_4 = isl_imath.lo \
 @GMP_FOR_MP_FALSE@@IMATH_FOR_MP_TRUE@	imath_wrap/gmp_compat.lo \
 @GMP_FOR_MP_FALSE@@IMATH_FOR_MP_TRUE@	imath_wrap/imath.lo \
-@GMP_FOR_MP_FALSE@@IMATH_FOR_MP_TRUE@	imath_wrap/imrat.lo
-@GMP_FOR_MP_TRUE@am__objects_2 = $(am__objects_1) isl_gmp.lo \
+@GMP_FOR_MP_FALSE@@IMATH_FOR_MP_TRUE@	imath_wrap/imrat.lo \
+@GMP_FOR_MP_FALSE@@IMATH_FOR_MP_TRUE@	$(am__objects_2) \
+@GMP_FOR_MP_FALSE@@IMATH_FOR_MP_TRUE@	$(am__objects_3)
+@GMP_FOR_MP_TRUE@am__objects_4 = $(am__objects_1) isl_gmp.lo \
 @GMP_FOR_MP_TRUE@	isl_val_gmp.lo
-@GMP_FOR_MP_TRUE@am__objects_3 = isl_ast_int.lo
-am_libisl_la_OBJECTS = $(am__objects_2) $(am__objects_3) isl_aff.lo \
+@GMP_FOR_MP_TRUE@am__objects_5 = isl_ast_int.lo
+am_libisl_la_OBJECTS = $(am__objects_4) $(am__objects_5) isl_aff.lo \
 	isl_affine_hull.lo isl_arg.lo isl_ast.lo isl_ast_build.lo \
 	isl_ast_build_expr.lo isl_ast_codegen.lo isl_ast_graft.lo \
 	isl_band.lo basis_reduction_tab.lo isl_bernstein.lo isl_blk.lo \
 	isl_bound.lo isl_coalesce.lo isl_constraint.lo \
-	isl_convex_hull.lo isl_ctx.lo isl_deprecated.lo isl_dim.lo \
-	isl_dim_map.lo isl_equalities.lo isl_factorization.lo \
-	isl_farkas.lo isl_flow.lo isl_fold.lo isl_hash.lo \
+	isl_convex_hull.lo isl_ctx.lo isl_deprecated.lo isl_dim_map.lo \
+	isl_equalities.lo isl_factorization.lo isl_farkas.lo \
+	isl_ffs.lo isl_flow.lo isl_fold.lo isl_hash.lo \
 	isl_id_to_ast_expr.lo isl_id_to_pw_aff.lo isl_ilp.lo \
 	isl_input.lo isl_local_space.lo isl_lp.lo isl_map.lo \
-	isl_map_simplify.lo isl_map_subtract.lo \
+	isl_map_list.lo isl_map_simplify.lo isl_map_subtract.lo \
 	isl_map_to_basic_set.lo isl_mat.lo isl_morph.lo isl_id.lo \
 	isl_obj.lo isl_options.lo isl_output.lo isl_point.lo \
 	isl_polynomial.lo isl_printer.lo print.lo isl_range.lo \
 	isl_reordering.lo isl_sample.lo isl_scan.lo isl_schedule.lo \
-	isl_scheduler.lo isl_set_list.lo isl_sort.lo isl_space.lo \
-	isl_stream.lo isl_seq.lo isl_tab.lo isl_tab_pip.lo \
-	isl_tarjan.lo isl_transitive_closure.lo isl_union_map.lo \
-	isl_val.lo isl_vec.lo isl_version.lo isl_vertices.lo
+	isl_schedule_band.lo isl_schedule_node.lo isl_schedule_read.lo \
+	isl_schedule_tree.lo isl_scheduler.lo isl_set_list.lo \
+	isl_sort.lo isl_space.lo isl_stream.lo isl_seq.lo isl_tab.lo \
+	isl_tab_pip.lo isl_tarjan.lo isl_transitive_closure.lo \
+	isl_union_map.lo isl_val.lo isl_vec.lo isl_version.lo \
+	isl_vertices.lo
 libisl_la_OBJECTS = $(am_libisl_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -227,6 +248,7 @@ am__v_lt_1 =
 libisl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(libisl_la_LDFLAGS) $(LDFLAGS) -o $@
+@IMATH_FOR_MP_TRUE@am__EXEEXT_1 = isl_test_imath$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_isl_bound_OBJECTS = bound.$(OBJEXT)
 isl_bound_OBJECTS = $(am_isl_bound_OBJECTS)
@@ -277,6 +299,19 @@ isl_test_DEPENDENCIES = libisl.la
 isl_test_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(isl_test_LDFLAGS) $(LDFLAGS) -o $@
+isl_test_imath_SOURCES = isl_test_imath.c
+isl_test_imath_OBJECTS = isl_test_imath.$(OBJEXT)
+@IMATH_FOR_MP_TRUE@isl_test_imath_DEPENDENCIES = libisl.la
+isl_test_imath_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(isl_test_imath_LDFLAGS) $(LDFLAGS) -o \
+	$@
+isl_test_int_SOURCES = isl_test_int.c
+isl_test_int_OBJECTS = isl_test_int.$(OBJEXT)
+isl_test_int_DEPENDENCIES = libisl.la
+isl_test_int_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(isl_test_int_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -316,14 +351,14 @@ SOURCES = $(libisl_la_SOURCES) $(isl_bound_SOURCES) $(isl_cat_SOURCES) \
 	$(isl_pip_SOURCES) $(isl_polyhedron_detect_equalities_SOURCES) \
 	$(isl_polyhedron_minimize_SOURCES) \
 	$(isl_polyhedron_sample_SOURCES) $(isl_polytope_scan_SOURCES) \
-	isl_test.c
+	isl_test.c isl_test_imath.c isl_test_int.c
 DIST_SOURCES = $(am__libisl_la_SOURCES_DIST) $(isl_bound_SOURCES) \
 	$(isl_cat_SOURCES) $(isl_closure_SOURCES) \
 	$(isl_codegen_SOURCES) $(isl_pip_SOURCES) \
 	$(isl_polyhedron_detect_equalities_SOURCES) \
 	$(isl_polyhedron_minimize_SOURCES) \
 	$(isl_polyhedron_sample_SOURCES) $(isl_polytope_scan_SOURCES) \
-	isl_test.c
+	isl_test.c isl_test_imath.c isl_test_int.c
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
 	install-data-recursive install-dvi-recursive \
@@ -342,7 +377,7 @@ am__pkginclude_HEADERS_DIST = include/isl/val_gmp.h include/isl/aff.h \
 	include/isl/aff_type.h include/isl/arg.h include/isl/ast.h \
 	include/isl/ast_type.h include/isl/ast_build.h \
 	include/isl/band.h include/isl/constraint.h include/isl/ctx.h \
-	include/isl/dim.h include/isl/flow.h include/isl/id.h \
+	include/isl/flow.h include/isl/id.h \
 	include/isl/id_to_ast_expr.h include/isl/id_to_pw_aff.h \
 	include/isl/ilp.h include/isl/hash.h include/isl/hmap.h \
 	include/isl/list.h include/isl/local_space.h include/isl/lp.h \
@@ -351,7 +386,8 @@ am__pkginclude_HEADERS_DIST = include/isl/val_gmp.h include/isl/aff.h \
 	include/isl/multi.h include/isl/obj.h include/isl/options.h \
 	include/isl/point.h include/isl/polynomial.h \
 	include/isl/polynomial_type.h include/isl/printer.h \
-	include/isl/schedule.h include/isl/set.h \
+	include/isl/schedule.h include/isl/schedule_node.h \
+	include/isl/schedule_type.h include/isl/set.h \
 	include/isl/set_type.h include/isl/space.h \
 	include/isl/stream.h include/isl/union_map.h \
 	include/isl/union_map_type.h include/isl/union_set.h \
@@ -756,20 +792,13 @@ lib_LTLIBRARIES = libisl.la
 @GMP_FOR_MP_TRUE@	isl_gmp.c \
 @GMP_FOR_MP_TRUE@	isl_val_gmp.c
 
-@IMATH_FOR_MP_TRUE@MP_SRC = \
-@IMATH_FOR_MP_TRUE@	isl_hide_deprecated.h \
-@IMATH_FOR_MP_TRUE@	isl_imath.c \
-@IMATH_FOR_MP_TRUE@	isl_imath.h \
-@IMATH_FOR_MP_TRUE@	isl_int_imath.h \
-@IMATH_FOR_MP_TRUE@	isl_val_imath.c \
-@IMATH_FOR_MP_TRUE@	imath_wrap/gmp_compat.h \
-@IMATH_FOR_MP_TRUE@	imath_wrap/imath.h \
-@IMATH_FOR_MP_TRUE@	imath_wrap/imrat.h \
-@IMATH_FOR_MP_TRUE@	imath_wrap/wrap.h \
-@IMATH_FOR_MP_TRUE@	imath_wrap/gmp_compat.c \
-@IMATH_FOR_MP_TRUE@	imath_wrap/imath.c \
-@IMATH_FOR_MP_TRUE@	imath_wrap/imrat.c
-
+@IMATH_FOR_MP_TRUE@MP_SRC = isl_hide_deprecated.h isl_imath.c \
+@IMATH_FOR_MP_TRUE@	isl_imath.h isl_int_imath.h \
+@IMATH_FOR_MP_TRUE@	imath_wrap/gmp_compat.h imath_wrap/imath.h \
+@IMATH_FOR_MP_TRUE@	imath_wrap/imrat.h imath_wrap/wrap.h \
+@IMATH_FOR_MP_TRUE@	imath_wrap/gmp_compat.c imath_wrap/imath.c \
+@IMATH_FOR_MP_TRUE@	imath_wrap/imrat.c $(am__append_3) \
+@IMATH_FOR_MP_TRUE@	$(am__append_4)
 @GMP_FOR_MP_TRUE@DEPRECATED_SRC = isl_ast_int.c
 @IMATH_FOR_MP_TRUE@DEPRECATED_SRC = 
 @GMP_FOR_MP_TRUE@MP_INCLUDE_H = include/isl/val_gmp.h
@@ -810,7 +839,6 @@ libisl_la_SOURCES = \
 	isl_ctx.c \
 	isl_ctx_private.h \
 	isl_deprecated.c \
-	isl_dim.c \
 	isl_dim_map.h \
 	isl_dim_map.c \
 	isl_equalities.c \
@@ -818,9 +846,11 @@ libisl_la_SOURCES = \
 	isl_factorization.c \
 	isl_factorization.h \
 	isl_farkas.c \
+	isl_ffs.c \
 	isl_flow.c \
 	isl_fold.c \
 	isl_hash.c \
+	isl_hash_private.h \
 	isl_id_to_ast_expr.c \
 	isl_id_to_pw_aff.c \
 	isl_ilp.c \
@@ -832,6 +862,7 @@ libisl_la_SOURCES = \
 	isl_lp.c \
 	isl_lp_private.h \
 	isl_map.c \
+	isl_map_list.c \
 	isl_map_simplify.c \
 	isl_map_subtract.c \
 	isl_map_private.h \
@@ -862,6 +893,13 @@ libisl_la_SOURCES = \
 	isl_scan.c \
 	isl_scan.h \
 	isl_schedule.c \
+	isl_schedule_band.c \
+	isl_schedule_band.h \
+	isl_schedule_node.c \
+	isl_schedule_node_private.h \
+	isl_schedule_read.c \
+	isl_schedule_tree.c \
+	isl_schedule_tree.h \
 	isl_schedule_private.h \
 	isl_scheduler.c \
 	isl_set_list.c \
@@ -887,7 +925,8 @@ libisl_la_SOURCES = \
 	isl_vec.c \
 	isl_version.c \
 	isl_vertices_private.h \
-	isl_vertices.c
+	isl_vertices.c \
+	isl_yaml.h
 
 libisl_la_LIBADD = @MP_LIBS@
 libisl_la_LDFLAGS = -version-info @versioninfo@ \
@@ -895,6 +934,10 @@ libisl_la_LDFLAGS = -version-info @versioninfo@ \
 
 isl_test_LDFLAGS = @MP_LDFLAGS@
 isl_test_LDADD = libisl.la @MP_LIBS@
+isl_test_int_LDFLAGS = @MP_LDFLAGS@
+isl_test_int_LDADD = libisl.la @MP_LIBS@
+@IMATH_FOR_MP_TRUE@isl_test_imath_LDFLAGS = @MP_LDFLAGS@
+@IMATH_FOR_MP_TRUE@isl_test_imath_LDADD = libisl.la @MP_LIBS@
 isl_polyhedron_sample_LDADD = libisl.la
 isl_polyhedron_sample_SOURCES = \
 	polyhedron_sample.c
@@ -949,7 +992,6 @@ pkginclude_HEADERS = \
 	include/isl/band.h \
 	include/isl/constraint.h \
 	include/isl/ctx.h \
-	include/isl/dim.h \
 	include/isl/flow.h \
 	include/isl/id.h \
 	include/isl/id_to_ast_expr.h \
@@ -972,6 +1014,8 @@ pkginclude_HEADERS = \
 	include/isl/polynomial_type.h \
 	include/isl/printer.h \
 	include/isl/schedule.h \
+	include/isl/schedule_node.h \
+	include/isl/schedule_type.h \
 	include/isl/set.h \
 	include/isl/set_type.h \
 	include/isl/space.h \
@@ -1009,8 +1053,15 @@ EXTRA_DIST = \
 	isl_list_templ.c \
 	isl_list_templ.h \
 	isl_map_lexopt_templ.c \
+	isl_multi_macro.h \
 	isl_multi_templ.c \
 	isl_multi_templ.h \
+	isl_multi_apply_templ.c \
+	isl_multi_apply_set.c \
+	isl_multi_apply_union_set.c \
+	isl_multi_floor.c \
+	isl_multi_gist.c \
+	isl_multi_intersect.c \
 	print_templ.c \
 	isl_power_templ.c \
 	isl_pw_templ.c \
@@ -1021,6 +1072,7 @@ EXTRA_DIST = \
 	isl_union_eval.c \
 	isl_union_neg.c \
 	isl.py \
+	doc/CodingStyle \
 	doc/SubmittingPatches \
 	doc/chicago.bst \
 	doc/chicago.sty \
@@ -1201,6 +1253,14 @@ isl_test$(EXEEXT): $(isl_test_OBJECTS) $(isl_test_DEPENDENCIES) $(EXTRA_isl_test
 	@rm -f isl_test$(EXEEXT)
 	$(AM_V_CCLD)$(isl_test_LINK) $(isl_test_OBJECTS) $(isl_test_LDADD) $(LIBS)
 
+isl_test_imath$(EXEEXT): $(isl_test_imath_OBJECTS) $(isl_test_imath_DEPENDENCIES) $(EXTRA_isl_test_imath_DEPENDENCIES) 
+	@rm -f isl_test_imath$(EXEEXT)
+	$(AM_V_CCLD)$(isl_test_imath_LINK) $(isl_test_imath_OBJECTS) $(isl_test_imath_LDADD) $(LIBS)
+
+isl_test_int$(EXEEXT): $(isl_test_int_OBJECTS) $(isl_test_int_DEPENDENCIES) $(EXTRA_isl_test_int_DEPENDENCIES) 
+	@rm -f isl_test_int$(EXEEXT)
+	$(AM_V_CCLD)$(isl_test_int_LINK) $(isl_test_int_OBJECTS) $(isl_test_int_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 	-rm -f imath_wrap/*.$(OBJEXT)
@@ -1232,11 +1292,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_convex_hull.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_ctx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_deprecated.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_dim.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_dim_map.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_equalities.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_factorization.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_farkas.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_ffs.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_flow.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_fold.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_gmp.Plo@am__quote@
@@ -1247,9 +1307,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_ilp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_imath.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_input.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_int_sioimath.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_local_space.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_lp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_map.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_map_list.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_map_simplify.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_map_subtract.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_map_to_basic_set.Plo@am__quote@
@@ -1266,6 +1328,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_sample.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_scan.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_schedule.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_schedule_band.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_schedule_node.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_schedule_read.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_schedule_tree.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_scheduler.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_seq.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_set_list.Plo@am__quote@
@@ -1276,11 +1342,14 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_tab_pip.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_tarjan.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_test.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_test_imath.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_test_int.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_transitive_closure.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_union_map.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_val.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_val_gmp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_val_imath.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_val_sioimath.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_vec.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_version.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isl_vertices.Plo@am__quote@
@@ -1684,6 +1753,20 @@ pip_test.sh.log: pip_test.sh
 bound_test.sh.log: bound_test.sh
 	@p='bound_test.sh'; \
 	b='bound_test.sh'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+isl_test_int.log: isl_test_int$(EXEEXT)
+	@p='isl_test_int$(EXEEXT)'; \
+	b='isl_test_int'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+isl_test_imath.log: isl_test_imath$(EXEEXT)
+	@p='isl_test_imath$(EXEEXT)'; \
+	b='isl_test_imath'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
